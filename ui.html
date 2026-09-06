@@ -976,18 +976,26 @@
       pointer-events: auto;
     }
 
+    .loading-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
     .loading-status {
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       color: #f3f4f6 !important;
       text-align: center;
-      max-width: 85%;
-      line-height: 1.5;
+      max-width: 90%;
+      line-height: 1.4;
       letter-spacing: -0.01em;
     }
 
     .loading-progress-bar {
-      width: 200px;
+      width: 240px;
       height: 5px;
       background: rgba(255, 255, 255, 0.12);
       border-radius: 3px;
@@ -1002,6 +1010,211 @@
       box-shadow: 0 0 8px rgba(24, 160, 251, 0.6);
       transition: width 0.15s ease;
       border-radius: 3px;
+    }
+
+    /* Pages Scan Queue Box */
+    .loading-pages-box {
+      width: 100%;
+      max-width: 400px;
+      height: 380px;
+      max-height: 400px;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-sizing: border-box;
+    }
+
+    .loading-pages-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+      padding: 0 4px 2px;
+      flex-shrink: 0;
+    }
+
+    .loading-pages-list {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding-right: 2px;
+      scroll-behavior: smooth;
+    }
+
+    .loading-pages-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .loading-pages-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .loading-pages-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .page-scan-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid transparent;
+    }
+
+    .page-scan-row.active {
+      background: rgba(24, 160, 251, 0.14);
+      border-color: rgba(24, 160, 251, 0.35);
+    }
+
+    .page-scan-row.completed {
+      opacity: 0.88;
+    }
+
+    .page-scan-row.pending {
+      opacity: 0.45;
+    }
+
+    .page-scan-row.next {
+      opacity: 0.75;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .page-scan-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-scan-icon.completed {
+      color: #10b981;
+    }
+
+    .page-scan-icon.active {
+      position: relative;
+    }
+
+    .scan-radar-emitter {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scan-pulse-dot {
+      width: 6px;
+      height: 6px;
+      background: #18a0fb;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(24, 160, 251, 0.95);
+      position: relative;
+      z-index: 2;
+      flex-shrink: 0;
+    }
+
+    .scan-pulse-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(24, 160, 251, 0.9);
+      box-sizing: border-box;
+      transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
+      animation: ripple-scan 1.8s cubic-bezier(0.15, 0.5, 0.3, 1) infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .scan-pulse-ring.ring-2 {
+      animation-delay: 0.9s;
+    }
+
+    .scan-pulse-dot > .scan-pulse-ring {
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+    }
+
+    @keyframes ripple-scan {
+      0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.95;
+        border-width: 1.5px;
+      }
+      40% {
+        opacity: 0.55;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(3.2);
+        opacity: 0;
+        border-width: 1px;
+      }
+    }
+
+    .page-scan-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+
+    .page-scan-row.active .page-scan-name {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .page-scan-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .page-scan-badge.completed {
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.14);
+    }
+
+    .page-scan-badge.active {
+      color: #18a0fb;
+      background: rgba(24, 160, 251, 0.2);
+    }
+
+    .page-scan-badge.next {
+      color: #94a3b8;
+      background: rgba(148, 163, 184, 0.12);
+    }
+
+    .page-scan-badge.pending {
+      color: #64748b;
+      background: transparent;
     }
 
     .btn-cancel-scan {
@@ -1169,8 +1382,19 @@
 
   <!-- Loading Overlay -->
   <div id="loading" class="loading-container">
-    <div id="loading-status" class="loading-status">Scanning document for missing libraries...</div>
-    <div class="loading-progress-bar"><div id="loading-progress-fill" class="loading-progress-fill"></div></div>
+    <div class="loading-header">
+      <div id="loading-status" class="loading-status">Scanning document for missing libraries...</div>
+      <div class="loading-progress-bar"><div id="loading-progress-fill" class="loading-progress-fill"></div></div>
+    </div>
+    <div id="loading-pages-box" class="loading-pages-box" style="display: none;">
+      <div class="loading-pages-header">
+        <span id="loading-pages-count">Pages to scan</span>
+        <span id="loading-overall-percent">0%</span>
+      </div>
+      <div id="loading-pages-list" class="loading-pages-list">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
     <button id="btn-cancel-scan" class="btn-cancel-scan" type="button">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
         <rect x="4" y="4" width="16" height="16" rx="2"/>
@@ -1258,10 +1482,134 @@
     const loadingOverlay = document.getElementById('loading');
     const loadingStatus = document.getElementById('loading-status');
     const loadingProgressFill = document.getElementById('loading-progress-fill');
+    const loadingPagesBox = document.getElementById('loading-pages-box');
+    const loadingPagesList = document.getElementById('loading-pages-list');
+    const loadingPagesCount = document.getElementById('loading-pages-count');
+    const loadingOverallPercent = document.getElementById('loading-overall-percent');
     const btnCancelScan = document.getElementById('btn-cancel-scan');
     const badgeAll = document.getElementById('badge-all');
     const badgeColors = document.getElementById('badge-colors');
     const badgeFonts = document.getElementById('badge-fonts');
+
+    // Page Scan Queue rendering and state
+    function initLoadingPages(pages) {
+      if (!loadingPagesBox || !loadingPagesList) return;
+      loadingPagesList.innerHTML = '';
+      if (!pages || pages.length === 0) {
+        loadingPagesBox.style.display = 'none';
+        return;
+      }
+      loadingPagesBox.style.display = 'flex';
+      if (loadingPagesCount) {
+        loadingPagesCount.textContent = `Pages (${pages.length})`;
+      }
+      if (loadingOverallPercent) {
+        loadingOverallPercent.textContent = '0%';
+      }
+
+      pages.forEach((p, idx) => {
+        const row = document.createElement('div');
+        row.className = 'page-scan-row ' + (idx === 0 ? 'active' : (idx === 1 ? 'next' : 'pending'));
+        row.id = `scan-page-row-${idx}`;
+        row.dataset.pageIndex = idx;
+
+        let iconHtml = '';
+        let badgeHtml = '';
+        if (idx === 0) {
+          iconHtml = '<span class="scan-radar-emitter"><span class="scan-pulse-ring"></span><span class="scan-pulse-ring ring-2"></span><span class="scan-pulse-dot"></span></span>';
+          badgeHtml = '<span class="page-scan-badge active">Scanning</span>';
+        } else if (idx === 1) {
+          iconHtml = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/></svg>';
+          badgeHtml = '<span class="page-scan-badge next">Up Next</span>';
+        } else {
+          iconHtml = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#64748b"/></svg>';
+          badgeHtml = '<span class="page-scan-badge pending">Queued</span>';
+        }
+
+        row.innerHTML = `
+          <div class="page-scan-icon ${idx === 0 ? 'active' : ''}">${iconHtml}</div>
+          <div class="page-scan-name" title="${p.name}">${p.name}</div>
+          <div class="page-scan-badge-wrap">${badgeHtml}</div>
+        `;
+        loadingPagesList.appendChild(row);
+      });
+    }
+
+    function updatePagesProgress(data) {
+      if (!loadingPagesList) return;
+      const currentIdx = typeof data.currentPageIndex === 'number' ? data.currentPageIndex : -1;
+      const percent = typeof data.percent === 'number' ? data.percent : 0;
+
+      if (loadingOverallPercent) {
+        loadingOverallPercent.textContent = `${Math.min(100, Math.max(0, percent))}%`;
+      }
+
+      const rows = loadingPagesList.querySelectorAll('.page-scan-row');
+      rows.forEach((row, idx) => {
+        const iconEl = row.querySelector('.page-scan-icon');
+        const badgeWrap = row.querySelector('.page-scan-badge-wrap');
+        if (!iconEl || !badgeWrap) return;
+
+        if (idx < currentIdx) {
+          // Completed page: check on left side, done badge
+          row.className = 'page-scan-row completed';
+          iconEl.className = 'page-scan-icon completed';
+          iconEl.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+          if (!row.dataset.hasLayerCount) {
+            badgeWrap.innerHTML = '<span class="page-scan-badge completed">Done</span>';
+          }
+        } else if (idx === currentIdx) {
+          // Active currently scanning page: dual ripple radar dot
+          row.className = 'page-scan-row active';
+          iconEl.className = 'page-scan-icon active';
+          iconEl.innerHTML = '<span class="scan-radar-emitter"><span class="scan-pulse-ring"></span><span class="scan-pulse-ring ring-2"></span><span class="scan-pulse-dot"></span></span>';
+
+          let scanStatusText = 'Scanning';
+          if (data.totalLayers && data.totalLayers > 0 && typeof data.inspectedLayers === 'number') {
+            const pagePct = Math.round((data.inspectedLayers / data.totalLayers) * 100);
+            scanStatusText = `Scanning (${pagePct}%)`;
+          }
+          badgeWrap.innerHTML = `<span class="page-scan-badge active">${scanStatusText}</span>`;
+        } else if (idx === currentIdx + 1) {
+          // Immediate next page
+          row.className = 'page-scan-row next';
+          iconEl.className = 'page-scan-icon';
+          iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/></svg>';
+          badgeWrap.innerHTML = '<span class="page-scan-badge next">Up Next</span>';
+        } else {
+          // Upcoming queued pages
+          row.className = 'page-scan-row pending';
+          iconEl.className = 'page-scan-icon';
+          iconEl.innerHTML = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#64748b"/></svg>';
+          badgeWrap.innerHTML = '<span class="page-scan-badge pending">Queued</span>';
+        }
+      });
+
+      // Keep currently scanning row in view
+      const activeRow = loadingPagesList.querySelector('.page-scan-row.active');
+      if (activeRow) {
+        activeRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+
+    function completeLoadingPage(pageIndex, nodeCount) {
+      if (!loadingPagesList) return;
+      const row = document.getElementById(`scan-page-row-${pageIndex}`);
+      if (!row) return;
+
+      row.className = 'page-scan-row completed';
+      row.dataset.hasLayerCount = 'true';
+      const iconEl = row.querySelector('.page-scan-icon');
+      if (iconEl) {
+        iconEl.className = 'page-scan-icon completed';
+        iconEl.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      }
+      const badgeWrap = row.querySelector('.page-scan-badge-wrap');
+      if (badgeWrap) {
+        const layerText = typeof nodeCount === 'number' ? `${nodeCount.toLocaleString()} layers` : 'Done';
+        badgeWrap.innerHTML = `<span class="page-scan-badge completed">${layerText}</span>`;
+      }
+    }
 
     function syncScopeUI() {
       if (scopeCurrentBtn && scopeAllBtn) {
@@ -1351,6 +1699,9 @@
       loadingOverlay.classList.add('active');
       loadingStatus.textContent = `Preparing ${state.scope === 'all' ? 'all pages' : 'current page'} scan...`;
       if (loadingProgressFill) loadingProgressFill.style.width = '0%';
+      if (loadingPagesBox) loadingPagesBox.style.display = 'none';
+      if (loadingPagesList) loadingPagesList.innerHTML = '';
+      if (loadingOverallPercent) loadingOverallPercent.textContent = '0%';
       if (btnCancelScan) {
         btnCancelScan.disabled = false;
         btnCancelScan.innerHTML = `
@@ -1383,6 +1734,7 @@
     btnBreakEverything.addEventListener('click', () => {
       loadingOverlay.classList.add('active');
       loadingStatus.textContent = 'Cleaning all missing library references...';
+      if (loadingPagesBox) loadingPagesBox.style.display = 'none';
       parent.postMessage({
         pluginMessage: {
           type: 'break-category',
@@ -1411,14 +1763,20 @@
         } catch (e) {}
         syncScopeUI();
         if (state.currentTab === 'settings' || !state.hasScanned) render();
+      } else if (msg.type === 'scan-init-pages') {
+        initLoadingPages(msg.pages);
       } else if (msg.type === 'scan-progress') {
         loadingStatus.textContent = msg.status || 'Scanning...';
         if (loadingProgressFill && typeof msg.percent === 'number') {
           loadingProgressFill.style.width = `${Math.min(100, Math.max(0, msg.percent))}%`;
         }
+        updatePagesProgress(msg);
+      } else if (msg.type === 'scan-page-completed') {
+        completeLoadingPage(msg.pageIndex, msg.nodeCount);
       } else if (msg.type === 'scan-results') {
         state.hasScanned = true;
         loadingOverlay.classList.remove('active');
+        if (loadingPagesBox) loadingPagesBox.style.display = 'none';
         if (loadingProgressFill) loadingProgressFill.style.width = '0%';
         if (btnCancelScan) {
           btnCancelScan.disabled = false;

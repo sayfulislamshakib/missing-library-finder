@@ -109,7 +109,7 @@ async function setNodeFills(node, fills) {
   if (typeof node.setFillsAsync === 'function') {
     await node.setFillsAsync(fills);
   } else {
-    try { node.fills = fills; } catch (e) {}
+    try { node.fills = fills; } catch (e) { }
   }
 }
 
@@ -117,7 +117,7 @@ async function setNodeStrokes(node, strokes) {
   if (typeof node.setStrokesAsync === 'function') {
     await node.setStrokesAsync(strokes);
   } else {
-    try { node.strokes = strokes; } catch (e) {}
+    try { node.strokes = strokes; } catch (e) { }
   }
 }
 
@@ -125,7 +125,7 @@ async function setNodeEffects(node, effects) {
   if (typeof node.setEffectsAsync === 'function') {
     await node.setEffectsAsync(effects);
   } else {
-    try { node.effects = effects; } catch (e) {}
+    try { node.effects = effects; } catch (e) { }
   }
 }
 
@@ -304,7 +304,7 @@ function getPreviewColor(node, type, styleInfo = null) {
     if (solid && solid.color) {
       return rgbToHex(solid.color, solid.opacity);
     }
-  } catch (e) {}
+  } catch (e) { }
   return '#A0AEC0';
 }
 
@@ -341,14 +341,14 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
   try {
     // Pre-index all local styles (avoids triggering remote 403 fetches)
     try {
-      const paintStyles = typeof figma.getLocalPaintStylesAsync === 'function' 
-        ? await figma.getLocalPaintStylesAsync() 
+      const paintStyles = typeof figma.getLocalPaintStylesAsync === 'function'
+        ? await figma.getLocalPaintStylesAsync()
         : (figma.getLocalPaintStyles ? figma.getLocalPaintStyles() : []);
-      const textStyles = typeof figma.getLocalTextStylesAsync === 'function' 
-        ? await figma.getLocalTextStylesAsync() 
+      const textStyles = typeof figma.getLocalTextStylesAsync === 'function'
+        ? await figma.getLocalTextStylesAsync()
         : (figma.getLocalTextStyles ? figma.getLocalTextStyles() : []);
-      const effectStyles = typeof figma.getLocalEffectStylesAsync === 'function' 
-        ? await figma.getLocalEffectStylesAsync() 
+      const effectStyles = typeof figma.getLocalEffectStylesAsync === 'function'
+        ? await figma.getLocalEffectStylesAsync()
         : (figma.getLocalEffectStyles ? figma.getLocalEffectStyles() : []);
 
       for (const s of [...paintStyles, ...textStyles, ...effectStyles]) {
@@ -379,8 +379,8 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
     // Pre-index all local variables
     if (figma.variables) {
       try {
-        const localVars = typeof figma.variables.getLocalVariablesAsync === 'function' 
-          ? await figma.variables.getLocalVariablesAsync() 
+        const localVars = typeof figma.variables.getLocalVariablesAsync === 'function'
+          ? await figma.variables.getLocalVariablesAsync()
           : (figma.variables.getLocalVariables ? figma.variables.getLocalVariables() : []);
         for (const v of localVars) {
           if (!v) continue;
@@ -509,314 +509,132 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
             continue;
           }
 
-      const isText = node.type === 'TEXT';
-      const isShape = node.type !== 'TEXT';
-      const allowColor = (isShape && currentSettings.detectShapeColors !== false) || (isText && currentSettings.detectTextColors !== false);
+          const isText = node.type === 'TEXT';
+          const isShape = node.type !== 'TEXT';
+          const allowColor = (isShape && currentSettings.detectShapeColors !== false) || (isText && currentSettings.detectTextColors !== false);
 
-      // 1. Check Missing / Remote Fill Style
-      if (allowColor && currentSettings.detectFills && 'fillStyleId' in node) {
-        if (typeof node.fillStyleId === 'string' && node.fillStyleId.length > 0) {
-          const styleInfo = await checkStyle(node.fillStyleId);
-          if (styleInfo && styleInfo.isMissing) {
-            const key = `fill:${node.fillStyleId}`;
-            const previewColor = getPreviewColor(node, 'fill', styleInfo);
-            const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : `Remote Color (${previewColor})`;
-            if (!missingColorsMap.has(key)) {
-              missingColorsMap.set(key, {
-                key,
-                rawId: node.fillStyleId,
-                category: 'color',
-                subType: 'fill-style',
-                name: displayName,
-                previewColor: previewColor,
-                nodes: []
+          // 1. Check Missing / Remote Fill Style
+          if (allowColor && currentSettings.detectFills && 'fillStyleId' in node) {
+            if (typeof node.fillStyleId === 'string' && node.fillStyleId.length > 0) {
+              const styleInfo = await checkStyle(node.fillStyleId);
+              if (styleInfo && styleInfo.isMissing) {
+                const key = `fill:${node.fillStyleId}`;
+                const previewColor = getPreviewColor(node, 'fill', styleInfo);
+                const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : `Remote Color (${previewColor})`;
+                if (!missingColorsMap.has(key)) {
+                  missingColorsMap.set(key, {
+                    key,
+                    rawId: node.fillStyleId,
+                    category: 'color',
+                    subType: 'fill-style',
+                    name: displayName,
+                    previewColor: previewColor,
+                    nodes: []
+                  });
+                }
+                missingColorsMap.get(key).nodes.push({
+                  id: node.id,
+                  name: node.name || 'Unnamed Layer',
+                  type: node.type,
+                  pageId: page.id,
+                  pageName: page.name
+                });
+              }
+            } else if (node.type === 'TEXT' && node.fillStyleId === figma.mixed && typeof node.getStyledTextSegments === 'function') {
+              try {
+                const segments = node.getStyledTextSegments(['fillStyleId']);
+                for (const seg of segments) {
+                  if (typeof seg.fillStyleId === 'string' && seg.fillStyleId.length > 0) {
+                    const styleInfo = await checkStyle(seg.fillStyleId);
+                    if (styleInfo && styleInfo.isMissing) {
+                      const key = `fill:${seg.fillStyleId}`;
+                      const previewColor = getPreviewColor(node, 'fill', styleInfo);
+                      const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : `Remote Color (${previewColor})`;
+                      if (!missingColorsMap.has(key)) {
+                        missingColorsMap.set(key, {
+                          key,
+                          rawId: seg.fillStyleId,
+                          category: 'color',
+                          subType: 'fill-style',
+                          name: displayName,
+                          previewColor: previewColor,
+                          nodes: []
+                        });
+                      }
+                      const entry = missingColorsMap.get(key);
+                      if (!entry.nodes.some(n => n.id === node.id)) {
+                        entry.nodes.push({
+                          id: node.id,
+                          name: node.name || 'Unnamed Layer',
+                          type: node.type,
+                          pageId: page.id,
+                          pageName: page.name
+                        });
+                      }
+                    }
+                  }
+                }
+              } catch (e) { }
+            }
+          }
+
+          // 2. Check Missing / Remote Stroke Style
+          if (allowColor && currentSettings.detectStrokes && 'strokeStyleId' in node && typeof node.strokeStyleId === 'string' && node.strokeStyleId.length > 0) {
+            const styleInfo = await checkStyle(node.strokeStyleId);
+            if (styleInfo && styleInfo.isMissing) {
+              const key = `stroke:${node.strokeStyleId}`;
+              const previewColor = getPreviewColor(node, 'stroke', styleInfo);
+              const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : `Remote Stroke (${previewColor})`;
+              if (!missingColorsMap.has(key)) {
+                missingColorsMap.set(key, {
+                  key,
+                  rawId: node.strokeStyleId,
+                  category: 'color',
+                  subType: 'stroke-style',
+                  name: displayName,
+                  previewColor: previewColor,
+                  nodes: []
+                });
+              }
+              missingColorsMap.get(key).nodes.push({
+                id: node.id,
+                name: node.name || 'Unnamed Layer',
+                type: node.type,
+                pageId: page.id,
+                pageName: page.name
               });
             }
-            missingColorsMap.get(key).nodes.push({
-              id: node.id,
-              name: node.name || 'Unnamed Layer',
-              type: node.type,
-              pageId: page.id,
-              pageName: page.name
-            });
           }
-        } else if (node.type === 'TEXT' && node.fillStyleId === figma.mixed && typeof node.getStyledTextSegments === 'function') {
-          try {
-            const segments = node.getStyledTextSegments(['fillStyleId']);
-            for (const seg of segments) {
-              if (typeof seg.fillStyleId === 'string' && seg.fillStyleId.length > 0) {
-                const styleInfo = await checkStyle(seg.fillStyleId);
-                if (styleInfo && styleInfo.isMissing) {
-                  const key = `fill:${seg.fillStyleId}`;
-                  const previewColor = getPreviewColor(node, 'fill', styleInfo);
-                  const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : `Remote Color (${previewColor})`;
-                  if (!missingColorsMap.has(key)) {
-                    missingColorsMap.set(key, {
-                      key,
-                      rawId: seg.fillStyleId,
-                      category: 'color',
-                      subType: 'fill-style',
-                      name: displayName,
-                      previewColor: previewColor,
-                      nodes: []
-                    });
-                  }
-                  const entry = missingColorsMap.get(key);
-                  if (!entry.nodes.some(n => n.id === node.id)) {
-                    entry.nodes.push({
-                      id: node.id,
-                      name: node.name || 'Unnamed Layer',
-                      type: node.type,
-                      pageId: page.id,
-                      pageName: page.name
-                    });
-                  }
-                }
-              }
-            }
-          } catch (e) {}
-        }
-      }
 
-      // 2. Check Missing / Remote Stroke Style
-      if (allowColor && currentSettings.detectStrokes && 'strokeStyleId' in node && typeof node.strokeStyleId === 'string' && node.strokeStyleId.length > 0) {
-        const styleInfo = await checkStyle(node.strokeStyleId);
-        if (styleInfo && styleInfo.isMissing) {
-          const key = `stroke:${node.strokeStyleId}`;
-          const previewColor = getPreviewColor(node, 'stroke', styleInfo);
-          const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : `Remote Stroke (${previewColor})`;
-          if (!missingColorsMap.has(key)) {
-            missingColorsMap.set(key, {
-              key,
-              rawId: node.strokeStyleId,
-              category: 'color',
-              subType: 'stroke-style',
-              name: displayName,
-              previewColor: previewColor,
-              nodes: []
-            });
-          }
-          missingColorsMap.get(key).nodes.push({
-            id: node.id,
-            name: node.name || 'Unnamed Layer',
-            type: node.type,
-            pageId: page.id,
-            pageName: page.name
-          });
-        }
-      }
-
-      // 3. Check Missing Bound Variables (Colors)
-      if (allowColor && currentSettings.detectVariables && 'boundVariables' in node && node.boundVariables) {
-        const bv = node.boundVariables;
-        if (bv.fills) {
-          const fillVars = Array.isArray(bv.fills) ? bv.fills : [bv.fills];
-          for (const item of fillVars) {
-            const varId = typeof item === 'object' && item ? item.id : item;
-            if (varId && typeof varId === 'string') {
-              const varInfo = await checkVariable(varId);
-              if (varInfo && varInfo.isMissing) {
-                const key = `var-fill:${varId}`;
-                const previewColor = getPreviewColor(node, 'fill');
-                const displayName = (varInfo && varInfo.name) ? varInfo.name : `Remote Variable (${previewColor})`;
-                if (!missingColorsMap.has(key)) {
-                  missingColorsMap.set(key, {
-                    key,
-                    rawId: varId,
-                    category: 'color',
-                    subType: 'variable',
-                    name: displayName,
-                    previewColor: previewColor,
-                    nodes: []
-                  });
-                }
-                const entry = missingColorsMap.get(key);
-                if (!entry.nodes.some(n => n.id === node.id)) {
-                  entry.nodes.push({
-                    id: node.id,
-                    name: node.name || 'Unnamed Layer',
-                    type: node.type,
-                    pageId: page.id,
-                    pageName: page.name
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        if (bv.strokes) {
-          const strokeVars = Array.isArray(bv.strokes) ? bv.strokes : [bv.strokes];
-          for (const item of strokeVars) {
-            const varId = typeof item === 'object' && item ? item.id : item;
-            if (varId && typeof varId === 'string') {
-              const varInfo = await checkVariable(varId);
-              if (varInfo && varInfo.isMissing) {
-                const key = `var-stroke:${varId}`;
-                const previewColor = getPreviewColor(node, 'stroke');
-                const displayName = (varInfo && varInfo.name) ? varInfo.name : `Remote Variable (${previewColor})`;
-                if (!missingColorsMap.has(key)) {
-                  missingColorsMap.set(key, {
-                    key,
-                    rawId: varId,
-                    category: 'color',
-                    subType: 'variable',
-                    name: displayName,
-                    previewColor: previewColor,
-                    nodes: []
-                  });
-                }
-                const entry = missingColorsMap.get(key);
-                if (!entry.nodes.some(n => n.id === node.id)) {
-                  entry.nodes.push({
-                    id: node.id,
-                    name: node.name || 'Unnamed Layer',
-                    type: node.type,
-                    pageId: page.id,
-                    pageName: page.name
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Check paint-level boundVariables
-      if (allowColor && currentSettings.detectVariables && 'fills' in node && Array.isArray(node.fills)) {
-        for (const paint of node.fills) {
-          if (paint && paint.boundVariables && paint.boundVariables.color) {
-            const varId = paint.boundVariables.color.id;
-            if (varId) {
-              const varInfo = await checkVariable(varId);
-              if (varInfo && varInfo.isMissing) {
-                const key = `var-paint:${varId}`;
-                const previewColor = getPreviewColor(node, 'fill');
-                const displayName = (varInfo && varInfo.name) ? varInfo.name : `Remote Variable (${previewColor})`;
-                if (!missingColorsMap.has(key)) {
-                  missingColorsMap.set(key, {
-                    key,
-                    rawId: varId,
-                    category: 'color',
-                    subType: 'variable',
-                    name: displayName,
-                    previewColor: previewColor,
-                    nodes: []
-                  });
-                }
-                const entry = missingColorsMap.get(key);
-                if (!entry.nodes.some(n => n.id === node.id)) {
-                  entry.nodes.push({
-                    id: node.id,
-                    name: node.name || 'Unnamed Layer',
-                    type: node.type,
-                    pageId: page.id,
-                    pageName: page.name
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // 4. Check Missing Typography / Text Styles
-      if (currentSettings.detectTextStyles && node.type === 'TEXT') {
-        if (typeof node.textStyleId === 'string' && node.textStyleId.length > 0) {
-          const styleInfo = await checkStyle(node.textStyleId);
-          if (styleInfo && styleInfo.isMissing) {
-            const key = `text-style:${node.textStyleId}`;
-            const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : 'Remote Text Style';
-            if (!missingFontsMap.has(key)) {
-              missingFontsMap.set(key, {
-                key,
-                rawId: node.textStyleId,
-                category: 'font',
-                subType: 'text-style',
-                name: displayName,
-                fontFamily: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.family : 'Library Text Style',
-                fontStyle: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.style : '',
-                nodes: []
-              });
-            }
-            missingFontsMap.get(key).nodes.push({
-              id: node.id,
-              name: node.name || 'Unnamed Text',
-              type: node.type,
-              pageId: page.id,
-              pageName: page.name
-            });
-          }
-        } else if (node.textStyleId === figma.mixed && typeof node.getStyledTextSegments === 'function') {
-          try {
-            const segments = node.getStyledTextSegments(['textStyleId']);
-            for (const seg of segments) {
-              if (typeof seg.textStyleId === 'string' && seg.textStyleId.length > 0) {
-                const styleInfo = await checkStyle(seg.textStyleId);
-                if (styleInfo && styleInfo.isMissing) {
-                  const key = `text-style:${seg.textStyleId}`;
-                  const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : 'Remote Text Style';
-                  if (!missingFontsMap.has(key)) {
-                    missingFontsMap.set(key, {
-                      key,
-                      rawId: seg.textStyleId,
-                      category: 'font',
-                      subType: 'text-style',
-                      name: displayName,
-                      fontFamily: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.family : 'Library Text Style',
-                      fontStyle: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.style : '',
-                      nodes: []
-                    });
-                  }
-                  const entry = missingFontsMap.get(key);
-                  if (!entry.nodes.some(n => n.id === node.id)) {
-                    entry.nodes.push({
-                      id: node.id,
-                      name: node.name || 'Unnamed Text',
-                      type: node.type,
-                      pageId: page.id,
-                      pageName: page.name
-                    });
-                  }
-                }
-              }
-            }
-          } catch (e) {}
-        }
-
-        // 5. Check Missing Fonts (hasMissingFont)
-        if (currentSettings.detectMissingFonts && node.hasMissingFont) {
-          let foundSegmentFont = false;
-          if (typeof node.getStyledTextSegments === 'function') {
-            try {
-              const segments = node.getStyledTextSegments(['fontName']);
-              for (const seg of segments) {
-                if (seg.fontName) {
-                  const fontFam = seg.fontName.family;
-                  const fontSty = seg.fontName.style;
-                  const fontKey = `${fontFam}::${fontSty}`;
-                  const isMissing = !availableFontSet.has(fontKey);
-
-                  if (isMissing || node.hasMissingFont) {
-                    foundSegmentFont = true;
-                    const key = `font:${fontFam}::${fontSty}`;
-                    if (!missingFontsMap.has(key)) {
-                      missingFontsMap.set(key, {
+          // 3. Check Missing Bound Variables (Colors)
+          if (allowColor && currentSettings.detectVariables && 'boundVariables' in node && node.boundVariables) {
+            const bv = node.boundVariables;
+            if (bv.fills) {
+              const fillVars = Array.isArray(bv.fills) ? bv.fills : [bv.fills];
+              for (const item of fillVars) {
+                const varId = typeof item === 'object' && item ? item.id : item;
+                if (varId && typeof varId === 'string') {
+                  const varInfo = await checkVariable(varId);
+                  if (varInfo && varInfo.isMissing) {
+                    const key = `var-fill:${varId}`;
+                    const previewColor = getPreviewColor(node, 'fill');
+                    const displayName = (varInfo && varInfo.name) ? varInfo.name : `Remote Variable (${previewColor})`;
+                    if (!missingColorsMap.has(key)) {
+                      missingColorsMap.set(key, {
                         key,
-                        rawId: fontKey,
-                        category: 'font',
-                        subType: 'missing-font',
-                        name: `${fontFam} (${fontSty})`,
-                        fontFamily: fontFam,
-                        fontStyle: fontSty,
+                        rawId: varId,
+                        category: 'color',
+                        subType: 'variable',
+                        name: displayName,
+                        previewColor: previewColor,
                         nodes: []
                       });
                     }
-                    const entry = missingFontsMap.get(key);
+                    const entry = missingColorsMap.get(key);
                     if (!entry.nodes.some(n => n.id === node.id)) {
                       entry.nodes.push({
                         id: node.id,
-                        name: node.name || 'Unnamed Text',
+                        name: node.name || 'Unnamed Layer',
                         type: node.type,
                         pageId: page.id,
                         pageName: page.name
@@ -825,127 +643,309 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
                   }
                 }
               }
-            } catch (e) {}
+            }
+
+            if (bv.strokes) {
+              const strokeVars = Array.isArray(bv.strokes) ? bv.strokes : [bv.strokes];
+              for (const item of strokeVars) {
+                const varId = typeof item === 'object' && item ? item.id : item;
+                if (varId && typeof varId === 'string') {
+                  const varInfo = await checkVariable(varId);
+                  if (varInfo && varInfo.isMissing) {
+                    const key = `var-stroke:${varId}`;
+                    const previewColor = getPreviewColor(node, 'stroke');
+                    const displayName = (varInfo && varInfo.name) ? varInfo.name : `Remote Variable (${previewColor})`;
+                    if (!missingColorsMap.has(key)) {
+                      missingColorsMap.set(key, {
+                        key,
+                        rawId: varId,
+                        category: 'color',
+                        subType: 'variable',
+                        name: displayName,
+                        previewColor: previewColor,
+                        nodes: []
+                      });
+                    }
+                    const entry = missingColorsMap.get(key);
+                    if (!entry.nodes.some(n => n.id === node.id)) {
+                      entry.nodes.push({
+                        id: node.id,
+                        name: node.name || 'Unnamed Layer',
+                        type: node.type,
+                        pageId: page.id,
+                        pageName: page.name
+                      });
+                    }
+                  }
+                }
+              }
+            }
           }
 
-          if (!foundSegmentFont) {
-            let fontFam = 'Unknown Missing Font';
-            let fontSty = 'Regular';
-            if (node.fontName && node.fontName !== figma.mixed) {
-              fontFam = node.fontName.family;
-              fontSty = node.fontName.style;
+          // Check paint-level boundVariables
+          if (allowColor && currentSettings.detectVariables && 'fills' in node && Array.isArray(node.fills)) {
+            for (const paint of node.fills) {
+              if (paint && paint.boundVariables && paint.boundVariables.color) {
+                const varId = paint.boundVariables.color.id;
+                if (varId) {
+                  const varInfo = await checkVariable(varId);
+                  if (varInfo && varInfo.isMissing) {
+                    const key = `var-paint:${varId}`;
+                    const previewColor = getPreviewColor(node, 'fill');
+                    const displayName = (varInfo && varInfo.name) ? varInfo.name : `Remote Variable (${previewColor})`;
+                    if (!missingColorsMap.has(key)) {
+                      missingColorsMap.set(key, {
+                        key,
+                        rawId: varId,
+                        category: 'color',
+                        subType: 'variable',
+                        name: displayName,
+                        previewColor: previewColor,
+                        nodes: []
+                      });
+                    }
+                    const entry = missingColorsMap.get(key);
+                    if (!entry.nodes.some(n => n.id === node.id)) {
+                      entry.nodes.push({
+                        id: node.id,
+                        name: node.name || 'Unnamed Layer',
+                        type: node.type,
+                        pageId: page.id,
+                        pageName: page.name
+                      });
+                    }
+                  }
+                }
+              }
             }
-            const key = `font:${fontFam}::${fontSty}`;
-            if (!missingFontsMap.has(key)) {
-              missingFontsMap.set(key, {
-                key,
-                rawId: key,
-                category: 'font',
-                subType: 'missing-font',
-                name: `${fontFam} (${fontSty})`,
-                fontFamily: fontFam,
-                fontStyle: fontSty,
-                nodes: []
-              });
+          }
+
+          // 4. Check Missing Typography / Text Styles
+          if (currentSettings.detectTextStyles && node.type === 'TEXT') {
+            if (typeof node.textStyleId === 'string' && node.textStyleId.length > 0) {
+              const styleInfo = await checkStyle(node.textStyleId);
+              if (styleInfo && styleInfo.isMissing) {
+                const key = `text-style:${node.textStyleId}`;
+                const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : 'Remote Text Style';
+                if (!missingFontsMap.has(key)) {
+                  missingFontsMap.set(key, {
+                    key,
+                    rawId: node.textStyleId,
+                    category: 'font',
+                    subType: 'text-style',
+                    name: displayName,
+                    fontFamily: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.family : 'Library Text Style',
+                    fontStyle: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.style : '',
+                    nodes: []
+                  });
+                }
+                missingFontsMap.get(key).nodes.push({
+                  id: node.id,
+                  name: node.name || 'Unnamed Text',
+                  type: node.type,
+                  pageId: page.id,
+                  pageName: page.name
+                });
+              }
+            } else if (node.textStyleId === figma.mixed && typeof node.getStyledTextSegments === 'function') {
+              try {
+                const segments = node.getStyledTextSegments(['textStyleId']);
+                for (const seg of segments) {
+                  if (typeof seg.textStyleId === 'string' && seg.textStyleId.length > 0) {
+                    const styleInfo = await checkStyle(seg.textStyleId);
+                    if (styleInfo && styleInfo.isMissing) {
+                      const key = `text-style:${seg.textStyleId}`;
+                      const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : 'Remote Text Style';
+                      if (!missingFontsMap.has(key)) {
+                        missingFontsMap.set(key, {
+                          key,
+                          rawId: seg.textStyleId,
+                          category: 'font',
+                          subType: 'text-style',
+                          name: displayName,
+                          fontFamily: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.family : 'Library Text Style',
+                          fontStyle: (styleInfo && styleInfo.style && styleInfo.style.fontName) ? styleInfo.style.fontName.style : '',
+                          nodes: []
+                        });
+                      }
+                      const entry = missingFontsMap.get(key);
+                      if (!entry.nodes.some(n => n.id === node.id)) {
+                        entry.nodes.push({
+                          id: node.id,
+                          name: node.name || 'Unnamed Text',
+                          type: node.type,
+                          pageId: page.id,
+                          pageName: page.name
+                        });
+                      }
+                    }
+                  }
+                }
+              } catch (e) { }
             }
-            const entry = missingFontsMap.get(key);
-            if (!entry.nodes.some(n => n.id === node.id)) {
-              entry.nodes.push({
+
+            // 5. Check Missing Fonts (hasMissingFont)
+            if (currentSettings.detectMissingFonts && node.hasMissingFont) {
+              let foundSegmentFont = false;
+              if (typeof node.getStyledTextSegments === 'function') {
+                try {
+                  const segments = node.getStyledTextSegments(['fontName']);
+                  for (const seg of segments) {
+                    if (seg.fontName) {
+                      const fontFam = seg.fontName.family;
+                      const fontSty = seg.fontName.style;
+                      const fontKey = `${fontFam}::${fontSty}`;
+                      const isMissing = !availableFontSet.has(fontKey);
+
+                      if (isMissing || node.hasMissingFont) {
+                        foundSegmentFont = true;
+                        const key = `font:${fontFam}::${fontSty}`;
+                        if (!missingFontsMap.has(key)) {
+                          missingFontsMap.set(key, {
+                            key,
+                            rawId: fontKey,
+                            category: 'font',
+                            subType: 'missing-font',
+                            name: `${fontFam} (${fontSty})`,
+                            fontFamily: fontFam,
+                            fontStyle: fontSty,
+                            nodes: []
+                          });
+                        }
+                        const entry = missingFontsMap.get(key);
+                        if (!entry.nodes.some(n => n.id === node.id)) {
+                          entry.nodes.push({
+                            id: node.id,
+                            name: node.name || 'Unnamed Text',
+                            type: node.type,
+                            pageId: page.id,
+                            pageName: page.name
+                          });
+                        }
+                      }
+                    }
+                  }
+                } catch (e) { }
+              }
+
+              if (!foundSegmentFont) {
+                let fontFam = 'Unknown Missing Font';
+                let fontSty = 'Regular';
+                if (node.fontName && node.fontName !== figma.mixed) {
+                  fontFam = node.fontName.family;
+                  fontSty = node.fontName.style;
+                }
+                const key = `font:${fontFam}::${fontSty}`;
+                if (!missingFontsMap.has(key)) {
+                  missingFontsMap.set(key, {
+                    key,
+                    rawId: key,
+                    category: 'font',
+                    subType: 'missing-font',
+                    name: `${fontFam} (${fontSty})`,
+                    fontFamily: fontFam,
+                    fontStyle: fontSty,
+                    nodes: []
+                  });
+                }
+                const entry = missingFontsMap.get(key);
+                if (!entry.nodes.some(n => n.id === node.id)) {
+                  entry.nodes.push({
+                    id: node.id,
+                    name: node.name || 'Unnamed Text',
+                    type: node.type,
+                    pageId: page.id,
+                    pageName: page.name
+                  });
+                }
+              }
+            }
+          }
+
+          // 6. Check Missing Effect Styles
+          if (currentSettings.detectEffects && 'effectStyleId' in node && typeof node.effectStyleId === 'string' && node.effectStyleId.length > 0) {
+            const styleInfo = await checkStyle(node.effectStyleId);
+            if (styleInfo && styleInfo.isMissing) {
+              const key = `effect:${node.effectStyleId}`;
+              const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : 'Remote Effect Style';
+              if (!missingEffectsMap.has(key)) {
+                missingEffectsMap.set(key, {
+                  key,
+                  rawId: node.effectStyleId,
+                  category: 'effect',
+                  subType: 'effect-style',
+                  name: displayName,
+                  nodes: []
+                });
+              }
+              missingEffectsMap.get(key).nodes.push({
                 id: node.id,
-                name: node.name || 'Unnamed Text',
+                name: node.name || 'Unnamed Layer',
                 type: node.type,
                 pageId: page.id,
                 pageName: page.name
               });
             }
           }
+        } catch (nodeErr) {
+          // Safe isolation: single corrupted node never stops the scan
         }
       }
 
-      // 6. Check Missing Effect Styles
-      if (currentSettings.detectEffects && 'effectStyleId' in node && typeof node.effectStyleId === 'string' && node.effectStyleId.length > 0) {
-        const styleInfo = await checkStyle(node.effectStyleId);
-        if (styleInfo && styleInfo.isMissing) {
-          const key = `effect:${node.effectStyleId}`;
-          const displayName = (styleInfo && styleInfo.name) ? styleInfo.name : 'Remote Effect Style';
-          if (!missingEffectsMap.has(key)) {
-            missingEffectsMap.set(key, {
-              key,
-              rawId: node.effectStyleId,
-              category: 'effect',
-              subType: 'effect-style',
-              name: displayName,
-              nodes: []
-            });
-          }
-          missingEffectsMap.get(key).nodes.push({
-            id: node.id,
-            name: node.name || 'Unnamed Layer',
-            type: node.type,
-            pageId: page.id,
-            pageName: page.name
-          });
-        }
-      }
-    } catch (nodeErr) {
-      // Safe isolation: single corrupted node never stops the scan
+      // Notify UI that this page is completed
+      figma.ui.postMessage({
+        type: 'scan-page-completed',
+        pageIndex: pIdx,
+        pageName: page.name,
+        nodeCount: allNodes.length
+      });
     }
+  } catch (scanErr) {
+    console.error('Scan error:', scanErr);
+  } finally {
+    isScanning = false;
+
+    const colorsList = Array.from(missingColorsMap.values()).map(item => ({
+      ...item,
+      count: item.nodes.length
+    }));
+
+    const fontsList = Array.from(missingFontsMap.values()).map(item => ({
+      ...item,
+      count: item.nodes.length
+    }));
+
+    const effectsList = Array.from(missingEffectsMap.values()).map(item => ({
+      ...item,
+      count: item.nodes.length
+    }));
+
+    const pagesInfo = figma.root.children.filter(p => p.type === 'PAGE').map(p => ({
+      id: p.id,
+      name: p.name,
+      isCurrent: p.id === figma.currentPage.id
+    }));
+
+    figma.ui.postMessage({
+      type: 'scan-results',
+      scope,
+      settings: currentSettings,
+      stats: {
+        totalColors: colorsList.reduce((acc, c) => acc + c.count, 0),
+        totalFonts: fontsList.reduce((acc, f) => acc + f.count, 0),
+        totalEffects: effectsList.reduce((acc, e) => acc + e.count, 0),
+        uniqueColors: colorsList.length,
+        uniqueFonts: fontsList.length,
+        totalScannedNodes
+      },
+      results: {
+        colors: colorsList,
+        fonts: fontsList,
+        effects: effectsList
+      },
+      pages: pagesInfo
+    });
   }
-
-  // Notify UI that this page is completed
-  figma.ui.postMessage({
-    type: 'scan-page-completed',
-    pageIndex: pIdx,
-    pageName: page.name,
-    nodeCount: allNodes.length
-  });
-}
-} catch (scanErr) {
-  console.error('Scan error:', scanErr);
-} finally {
-  isScanning = false;
-
-  const colorsList = Array.from(missingColorsMap.values()).map(item => ({
-    ...item,
-    count: item.nodes.length
-  }));
-
-  const fontsList = Array.from(missingFontsMap.values()).map(item => ({
-    ...item,
-    count: item.nodes.length
-  }));
-
-  const effectsList = Array.from(missingEffectsMap.values()).map(item => ({
-    ...item,
-    count: item.nodes.length
-  }));
-
-  const pagesInfo = figma.root.children.filter(p => p.type === 'PAGE').map(p => ({
-    id: p.id,
-    name: p.name,
-    isCurrent: p.id === figma.currentPage.id
-  }));
-
-  figma.ui.postMessage({
-    type: 'scan-results',
-    scope,
-    settings: currentSettings,
-    stats: {
-      totalColors: colorsList.reduce((acc, c) => acc + c.count, 0),
-      totalFonts: fontsList.reduce((acc, f) => acc + f.count, 0),
-      totalEffects: effectsList.reduce((acc, e) => acc + e.count, 0),
-      uniqueColors: colorsList.length,
-      uniqueFonts: fontsList.length,
-      totalScannedNodes
-    },
-    results: {
-      colors: colorsList,
-      fonts: fontsList,
-      effects: effectsList
-    },
-    pages: pagesInfo
-  });
-}
 }
 
 // Helper: cleanly switch to another page in dynamic-page mode
@@ -1049,11 +1049,11 @@ async function breakItem(itemKey, subType, rawId, nodeIds, replacementFont = { f
   if (!styleDef && typeof figma.getStyleByIdAsync === 'function') {
     try {
       styleDef = await figma.getStyleByIdAsync(rawId);
-    } catch (e) {}
+    } catch (e) { }
   } else if (!styleDef && typeof figma.getStyleById === 'function') {
     try {
       styleDef = figma.getStyleById(rawId);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   for (const id of nodeIds) {
@@ -1063,7 +1063,7 @@ async function breakItem(itemKey, subType, rawId, nodeIds, replacementFont = { f
 
       const wasLocked = node.locked;
       if (wasLocked) {
-        try { node.locked = false; } catch (e) {}
+        try { node.locked = false; } catch (e) { }
       }
 
       if (subType === 'fill-style') {
@@ -1103,8 +1103,8 @@ async function breakItem(itemKey, subType, rawId, nodeIds, replacementFont = { f
       } else if (subType === 'variable') {
         try {
           if ('setBoundVariable' in node) {
-            try { node.setBoundVariable('fills', null); } catch (e) {}
-            try { node.setBoundVariable('strokes', null); } catch (e) {}
+            try { node.setBoundVariable('fills', null); } catch (e) { }
+            try { node.setBoundVariable('strokes', null); } catch (e) { }
           }
           if ('fills' in node && Array.isArray(node.fills)) {
             const newFills = node.fills.map(p => {
@@ -1118,7 +1118,7 @@ async function breakItem(itemKey, subType, rawId, nodeIds, replacementFont = { f
             await setNodeFills(node, newFills);
           }
           detachedCount++;
-        } catch (e) {}
+        } catch (e) { }
       } else if (subType === 'text-style') {
         if (node.type === 'TEXT') {
           if (node.textStyleId === rawId) {
@@ -1157,7 +1157,7 @@ async function breakItem(itemKey, subType, rawId, nodeIds, replacementFont = { f
             try {
               await setNodeFontName(node, replacementFont);
               detachedCount++;
-            } catch (e2) {}
+            } catch (e2) { }
           }
         }
       } else if (subType === 'effect-style') {
@@ -1172,7 +1172,7 @@ async function breakItem(itemKey, subType, rawId, nodeIds, replacementFont = { f
       }
 
       if (wasLocked) {
-        try { node.locked = true; } catch (e) {}
+        try { node.locked = true; } catch (e) { }
       }
     } catch (err) {
       console.error('Error detaching item on node:', id, err);
@@ -1206,7 +1206,7 @@ async function breakCategory(category, scope = 'all', replacementFont = { family
       replacementFont = { family: 'Inter', style: 'Regular' };
       try {
         await figma.loadFontAsync(replacementFont);
-      } catch (e2) {}
+      } catch (e2) { }
     }
   }
 
@@ -1222,7 +1222,7 @@ async function breakCategory(category, scope = 'all', replacementFont = { family
       try {
         const wasLocked = node.locked;
         if (wasLocked) {
-          try { node.locked = false; } catch (e) {}
+          try { node.locked = false; } catch (e) { }
         }
 
         if (category === 'colors' || category === 'all') {
@@ -1257,11 +1257,11 @@ async function breakCategory(category, scope = 'all', replacementFont = { family
           if ('setBoundVariable' in node) {
             try {
               if (node.boundVariables && (node.boundVariables.fills || node.boundVariables.strokes)) {
-                try { node.setBoundVariable('fills', null); } catch (e) {}
-                try { node.setBoundVariable('strokes', null); } catch (e) {}
+                try { node.setBoundVariable('fills', null); } catch (e) { }
+                try { node.setBoundVariable('strokes', null); } catch (e) { }
                 totalBroken++;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         }
 
@@ -1278,15 +1278,15 @@ async function breakCategory(category, scope = 'all', replacementFont = { family
               try {
                 await setNodeFontName(node, replacementFont);
                 totalBroken++;
-              } catch (e) {}
+              } catch (e) { }
             }
           }
         }
 
         if (wasLocked) {
-          try { node.locked = true; } catch (e) {}
+          try { node.locked = true; } catch (e) { }
         }
-      } catch (err) {}
+      } catch (err) { }
     }
   }
 
@@ -1303,7 +1303,7 @@ figma.ui.onmessage = async (msg) => {
         if (saved && typeof saved === 'object') {
           currentSettings = { ...defaultSettings, ...saved };
         }
-      } catch (e) {}
+      } catch (e) { }
       figma.ui.postMessage({
         type: 'init-settings',
         settings: currentSettings,
@@ -1316,7 +1316,7 @@ figma.ui.onmessage = async (msg) => {
         currentSettings.scope = msg.scope;
         try {
           await figma.clientStorage.setAsync('detection-settings', currentSettings);
-        } catch (e) {}
+        } catch (e) { }
       }
       await scanMissingItems(msg.scope || currentSettings.scope || 'all', msg.settings);
       break;
@@ -1395,7 +1395,7 @@ figma.ui.onmessage = async (msg) => {
     if (saved && typeof saved === 'object') {
       currentSettings = { ...defaultSettings, ...saved };
     }
-  } catch (e) {}
+  } catch (e) { }
 
   figma.ui.postMessage({
     type: 'init-settings',
