@@ -1,0 +1,19 @@
+{
+  "name": "Missing Library Finder",
+  "id": "1678284830843045290",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
+  "editorType": [
+    "figma"
+  ],
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": [
+      "none"
+    ],
+    "reasoning": "This plugin operates completely offline without external network requests."
+  }
+}

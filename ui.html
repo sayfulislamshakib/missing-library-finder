@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Missing Library Finder</title>
+  <style>
+    :root {
+      --bg: var(--figma-color-bg, #ffffff);
+      --bg-subtle: var(--figma-color-bg-secondary, #f5f5f5);
+      --bg-card: var(--figma-color-bg, #ffffff);
+      --bg-hover: var(--figma-color-bg-hover, #f0f0f0);
+      --bg-active: var(--figma-color-bg-pressed, #e5e5e5);
+      --border: var(--figma-color-border, #e5e5e5);
+      --border-subtle: var(--figma-color-border-subtle, #ececec);
+      --text: var(--figma-color-text, #111827);
+      --text-muted: var(--figma-color-text-secondary, #6b7280);
+      --text-dim: var(--figma-color-text-tertiary, #9ca3af);
+      --primary: var(--figma-color-bg-brand, #18a0fb);
+      --primary-hover: var(--figma-color-bg-brand-hover, #0b69a3);
+      --primary-text: #ffffff;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --danger-border: rgba(239, 68, 68, 0.35);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --warning-border: rgba(245, 158, 11, 0.35);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --radius-sm: 4px;
+      --radius: 6px;
+      --radius-lg: 8px;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+      --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: var(--figma-color-bg, #2c2c2c);
+        --bg-subtle: var(--figma-color-bg-secondary, #1e1e1e);
+        --bg-card: var(--figma-color-bg, #2c2c2c);
+        --bg-hover: var(--figma-color-bg-hover, #383838);
+        --bg-active: var(--figma-color-bg-pressed, #444444);
+        --border: var(--figma-color-border, #444444);
+        --border-subtle: var(--figma-color-border-subtle, #383838);
+        --text: var(--figma-color-text, #f3f4f6);
+        --text-muted: var(--figma-color-text-secondary, #a1a1aa);
+        --text-dim: var(--figma-color-text-tertiary, #71717a);
+      }
+    }
+
+    .figma-dark, [data-fpl-version="theme-dark"] {
+      --bg: var(--figma-color-bg, #2c2c2c);
+      --bg-subtle: var(--figma-color-bg-secondary, #1e1e1e);
+      --bg-card: var(--figma-color-bg, #2c2c2c);
+      --bg-hover: var(--figma-color-bg-hover, #383838);
+      --bg-active: var(--figma-color-bg-pressed, #444444);
+      --border: var(--figma-color-border, #444444);
+      --border-subtle: var(--figma-color-border-subtle, #383838);
+      --text: var(--figma-color-text, #f3f4f6);
+      --text-muted: var(--figma-color-text-secondary, #a1a1aa);
+      --text-dim: var(--figma-color-text-tertiary, #71717a);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.4;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #18a0fb, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 2px 4px rgba(24, 160, 251, 0.25);
+    }
+
+    .brand-title {
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: -0.01em;
+    }
+
+    .scope-selector {
+      display: flex;
+      align-items: center;
+      background: var(--bg-subtle);
+      padding: 2px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      gap: 2px;
+    }
+
+    .scope-btn {
+      padding: 3px 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .scope-btn.active {
+      background: var(--bg);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Controls Bar (Tabs, Filter) */
+    .controls-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 14px 6px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .controls-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      padding: 4px 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-badge {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 10px;
+      color: var(--text-muted);
+    }
+
+    .tab-btn.active .tab-badge {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 5px 26px 5px 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-subtle);
+      color: var(--text);
+      font-size: 11px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      background: var(--bg);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-clear-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .search-clear-btn:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .search-clear-btn.visible {
+      display: flex;
+    }
+
+    /* Settings View */
+    .settings-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 2px 0 16px;
+    }
+
+    .settings-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .settings-section-header {
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .setting-row {
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.1s ease;
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .setting-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .setting-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .setting-desc {
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    /* Modern Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--border);
+      border-radius: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(14px);
+    }
+
+    .settings-footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 2px;
+    }
+
+    .btn-reset-settings {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+
+    .btn-reset-settings:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+      border-color: #cbd5e1;
+    }
+
+    /* Main Scroll Area */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Item Card */
+    .item-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      flex-shrink: 0 !important;
+      min-height: 48px !important;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .item-card:hover {
+      border-color: #cbd5e1;
+    }
+
+    .item-header {
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      background: var(--bg);
+      min-height: 48px !important;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .font-icon-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: var(--warning);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .item-info {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .item-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text) !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .item-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .type-pill {
+      font-size: 9px;
+      font-weight: 600;
+      padding: 0 4px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .type-pill.fill {
+      background: #e0f2fe;
+      color: #0284c7;
+    }
+
+    .type-pill.stroke {
+      background: #f3e8ff;
+      color: #9333ea;
+    }
+
+    .type-pill.variable {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .type-pill.font {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .type-pill.text-style {
+      background: #fce7f3;
+      color: #db2777;
+    }
+
+    .layer-count-tag {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-action {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-subtle);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-action svg,
+    .btn-scan svg,
+    .btn-break-everything svg,
+    .layer-btn svg {
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .btn-action:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+      border-color: #cbd5e1;
+    }
+
+    .btn-action.break {
+      color: var(--danger);
+      background: var(--danger-bg);
+      border-color: var(--danger-border);
+    }
+
+    .btn-action.break:hover {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+
+    .btn-action.focus {
+      color: var(--text-muted);
+    }
+
+    .btn-action.focus:hover {
+      background: #0b69a3;
+      color: white;
+      border-color: #0b69a3;
+      box-shadow: none;
+    }
+
+    .btn-action.select-all {
+      color: var(--text-muted);
+    }
+
+    .btn-action.select-all:hover {
+      background: #0b69a3;
+      color: white;
+      border-color: #0b69a3;
+      box-shadow: none;
+    }
+
+    .toggle-drawer-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      border-radius: var(--radius-sm);
+      transition: transform 0.2s ease, color 0.15s ease, background 0.15s ease;
+    }
+
+    .toggle-drawer-icon:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .item-card.expanded .toggle-drawer-icon {
+      transform: rotate(180deg);
+    }
+
+    /* Expanded Drawer of Layers */
+    .layers-drawer {
+      display: none;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-subtle);
+      padding: 4px 0;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .item-card.expanded .layers-drawer {
+      display: block;
+    }
+
+    .layer-row {
+      padding: 5px 10px 5px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      transition: background 0.1s ease;
+    }
+
+    .layer-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .layer-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .layer-type-tag {
+      font-size: 9px;
+      color: var(--text-dim);
+      font-family: monospace;
+    }
+
+    .layer-name {
+      color: var(--text);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .layer-page-pill {
+      font-size: 9px;
+      color: var(--text-muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0 4px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .layer-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .layer-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .layer-btn:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+      background: var(--bg-hover);
+    }
+
+    .layer-btn.break-single:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+      background: var(--danger-bg);
+    }
+
+    /* Clean / Empty State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--success-bg);
+      color: var(--success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .empty-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Initial Empty State Card */
+    .initial-empty-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 20px;
+      text-align: center;
+      flex: 1;
+      height: 100%;
+    }
+
+    .initial-empty-card {
+      background: var(--bg);
+      border: none;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 330px;
+      width: 100%;
+    }
+
+    .initial-empty-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(24, 160, 251, 0.12), rgba(99, 102, 241, 0.15));
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .initial-empty-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .initial-empty-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+      max-width: 270px;
+    }
+
+    .initial-scope-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 6px 10px;
+      background: var(--bg-subtle);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .initial-scope-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .initial-scope-selector {
+      display: flex;
+      align-items: center;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 2px;
+      border-radius: var(--radius-sm);
+      gap: 2px;
+    }
+
+    .initial-scope-btn {
+      padding: 3px 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .initial-scope-btn.active {
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+    }
+
+    .btn-primary-start-scan {
+      width: 100%;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      margin-bottom: 10px;
+    }
+
+    .btn-primary-start-scan:hover {
+      background: #0b69a3;
+      border-color: #0b69a3;
+      box-shadow: none;
+    }
+
+    .btn-primary-start-scan:active {
+      background: #085585;
+      border-color: #085585;
+    }
+
+    .btn-settings-link {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+
+    .btn-settings-link:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
+
+    .settings-top-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .btn-back-settings {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-back-settings:hover {
+      background: var(--bg-hover);
+      border-color: #cbd5e1;
+    }
+
+    /* Loading Overlay (Dark Theme) */
+    .loading-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(18, 18, 20, 0.94);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .loading-container.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .loading-status {
+      font-size: 12px;
+      font-weight: 500;
+      color: #f3f4f6 !important;
+      text-align: center;
+      max-width: 85%;
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+    }
+
+    .loading-progress-bar {
+      width: 200px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+
+    .loading-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #18a0fb;
+      box-shadow: 0 0 8px rgba(24, 160, 251, 0.6);
+      transition: width 0.15s ease;
+      border-radius: 3px;
+    }
+
+    .btn-cancel-scan {
+      margin-top: 6px;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-cancel-scan:hover {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #ef4444;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+    }
+
+    .btn-cancel-scan:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Footer */
+    footer {
+      padding: 8px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .btn-scan {
+      flex: 1;
+      width: 100%;
+      height: 32px;
+      padding: 0 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-scan:hover {
+      background: var(--primary-hover);
+      box-shadow: none;
+    }
+
+    .btn-break-everything {
+      flex: 1;
+      height: 32px;
+      padding: 0 12px;
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+      border-radius: var(--radius);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-break-everything:hover {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header id="main-header" style="display: none;">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M6 6h10"/>
+            <path d="M6 10h10"/>
+          </svg>
+        </div>
+        <div class="brand-title">Missing Library Finder</div>
+      </div>
+      <div id="header-scope" class="scope-selector" style="display: none;">
+        <button id="scope-all" class="scope-btn active" title="Scan entire document (all pages)">All Pages</button>
+        <button id="scope-current" class="scope-btn" title="Scan active page only">Current Page</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls Bar (Tabs & Search) -->
+  <div id="controls-bar" class="controls-bar" style="display: none;">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="all">
+        All Issues <span id="badge-all" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="colors">
+        Colors <span id="badge-colors" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="fonts">
+        Fonts & Text <span id="badge-fonts" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="settings" title="Detection Settings">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+    </div>
+
+    <div class="filter-row">
+      <div class="search-box">
+        <span class="search-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <line x1="21" y1="21" x2="16" y2="16"/>
+          </svg>
+        </span>
+        <input id="search-input" class="search-input" type="text" placeholder="Filter by style name (e.g. Colors/Primary)...">
+        <button id="search-clear-btn" class="search-clear-btn" title="Clear search" type="button" aria-label="Clear search">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content List -->
+  <main id="content-list" class="content-area">
+    <!-- Populated dynamically -->
+  </main>
+
+  <!-- Loading Overlay -->
+  <div id="loading" class="loading-container">
+    <div id="loading-status" class="loading-status">Scanning document for missing libraries...</div>
+    <div class="loading-progress-bar"><div id="loading-progress-fill" class="loading-progress-fill"></div></div>
+    <button id="btn-cancel-scan" class="btn-cancel-scan" type="button">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <rect x="4" y="4" width="16" height="16" rx="2"/>
+      </svg>
+      <span>Stop Scan</span>
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <footer id="footer" style="display: none;">
+    <div class="footer-actions">
+      <button id="btn-break-everything" class="btn-break-everything" title="Detach all missing colors and fonts" style="display: none;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <span>Clean All</span>
+      </button>
+      <button id="btn-scan" class="btn-scan">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        <span>Scan Now</span>
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    // State management
+    let state = {
+      hasScanned: false,
+      scope: 'all',          // Default: all pages to match Figma's Missing Libraries modal
+      currentTab: 'all',
+      searchQuery: '',
+      settings: {
+        detectShapeColors: true,
+        detectTextColors: true,
+        detectFills: true,
+        detectStrokes: true,
+        detectVariables: true,
+        detectTextStyles: true,
+        detectMissingFonts: true,
+        detectEffects: true,
+        scanHiddenLayers: true
+      },
+      results: {
+        colors: [],
+        fonts: [],
+        effects: []
+      },
+      stats: {
+        totalColors: 0,
+        totalFonts: 0,
+        totalEffects: 0,
+        totalScannedNodes: 0
+      },
+      selectedFont: {
+        family: 'Inter',
+        style: 'Regular'
+      },
+      expandedCards: new Set()
+    };
+
+    // Instant local cache restore
+    try {
+      const cached = localStorage.getItem('mlf_settings');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.settings) state.settings = { ...state.settings, ...parsed.settings };
+          if (parsed.scope) state.scope = parsed.scope;
+        }
+      }
+    } catch (e) {}
+
+    // DOM Elements
+    const scopeCurrentBtn = document.getElementById('scope-current');
+    const scopeAllBtn = document.getElementById('scope-all');
+    const contentList = document.getElementById('content-list');
+    const searchInput = document.getElementById('search-input');
+    const searchClearBtn = document.getElementById('search-clear-btn');
+    const btnBreakEverything = document.getElementById('btn-break-everything');
+    const btnScan = document.getElementById('btn-scan');
+    const loadingOverlay = document.getElementById('loading');
+    const loadingStatus = document.getElementById('loading-status');
+    const loadingProgressFill = document.getElementById('loading-progress-fill');
+    const btnCancelScan = document.getElementById('btn-cancel-scan');
+    const badgeAll = document.getElementById('badge-all');
+    const badgeColors = document.getElementById('badge-colors');
+    const badgeFonts = document.getElementById('badge-fonts');
+
+    function syncScopeUI() {
+      if (scopeCurrentBtn && scopeAllBtn) {
+        scopeCurrentBtn.classList.toggle('active', state.scope === 'current');
+        scopeAllBtn.classList.toggle('active', state.scope === 'all');
+      }
+      document.querySelectorAll('.initial-scope-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.scope === state.scope);
+      });
+    }
+
+    function setScope(newScope) {
+      if (state.scope === newScope) return;
+      state.scope = newScope;
+      syncScopeUI();
+      saveSettings();
+      if (state.hasScanned) {
+        triggerScan();
+      }
+    }
+
+    // Initialize scope button active classes
+    syncScopeUI();
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.currentTab = btn.dataset.tab;
+        const filterRow = document.querySelector('.filter-row');
+        if (filterRow) {
+          filterRow.style.display = state.currentTab === 'settings' ? 'none' : 'flex';
+        }
+        render();
+      });
+    });
+
+    // Scope switching
+    scopeCurrentBtn.addEventListener('click', () => {
+      setScope('current');
+    });
+
+    scopeAllBtn.addEventListener('click', () => {
+      setScope('all');
+    });
+
+    // Search query & clear handling
+    function updateSearchClearBtn() {
+      if (searchClearBtn) {
+        searchClearBtn.classList.toggle('visible', searchInput.value.length > 0);
+      }
+    }
+
+    function clearSearch() {
+      searchInput.value = '';
+      state.searchQuery = '';
+      updateSearchClearBtn();
+      searchInput.focus();
+      render();
+    }
+
+    searchInput.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value.toLowerCase().trim();
+      updateSearchClearBtn();
+      render();
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        clearSearch();
+      }
+    });
+
+    if (searchClearBtn) {
+      searchClearBtn.addEventListener('click', () => {
+        clearSearch();
+      });
+    }
+
+    // Scan button
+    btnScan.addEventListener('click', () => {
+      triggerScan();
+    });
+
+    function triggerScan() {
+      loadingOverlay.classList.add('active');
+      loadingStatus.textContent = `Preparing ${state.scope === 'all' ? 'all pages' : 'current page'} scan...`;
+      if (loadingProgressFill) loadingProgressFill.style.width = '0%';
+      if (btnCancelScan) {
+        btnCancelScan.disabled = false;
+        btnCancelScan.innerHTML = `
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+          </svg>
+          <span>Stop Scan</span>
+        `;
+      }
+      parent.postMessage({
+        pluginMessage: {
+          type: 'scan',
+          scope: state.scope
+        }
+      }, '*');
+    }
+
+    if (btnCancelScan) {
+      btnCancelScan.addEventListener('click', () => {
+        loadingStatus.textContent = 'Stopping scan and preparing results...';
+        btnCancelScan.disabled = true;
+        btnCancelScan.innerHTML = `<span>Stopping...</span>`;
+        parent.postMessage({
+          pluginMessage: { type: 'cancel-scan' }
+        }, '*');
+      });
+    }
+
+    // Clean everything button
+    btnBreakEverything.addEventListener('click', () => {
+      loadingOverlay.classList.add('active');
+      loadingStatus.textContent = 'Cleaning all missing library references...';
+      parent.postMessage({
+        pluginMessage: {
+          type: 'break-category',
+          category: 'all',
+          scope: state.scope,
+          replacementFont: state.selectedFont
+        }
+      }, '*');
+    });
+
+    // Handle messages from plugin backend
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'init-settings' && msg.settings) {
+        state.settings = { ...state.settings, ...msg.settings };
+        if (msg.scope || msg.settings.scope) {
+          state.scope = msg.scope || msg.settings.scope;
+        }
+        try {
+          localStorage.setItem('mlf_settings', JSON.stringify({
+            settings: state.settings,
+            scope: state.scope
+          }));
+        } catch (e) {}
+        syncScopeUI();
+        if (state.currentTab === 'settings' || !state.hasScanned) render();
+      } else if (msg.type === 'scan-progress') {
+        loadingStatus.textContent = msg.status || 'Scanning...';
+        if (loadingProgressFill && typeof msg.percent === 'number') {
+          loadingProgressFill.style.width = `${Math.min(100, Math.max(0, msg.percent))}%`;
+        }
+      } else if (msg.type === 'scan-results') {
+        state.hasScanned = true;
+        loadingOverlay.classList.remove('active');
+        if (loadingProgressFill) loadingProgressFill.style.width = '0%';
+        if (btnCancelScan) {
+          btnCancelScan.disabled = false;
+          btnCancelScan.innerHTML = `
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+            </svg>
+            <span>Stop Scan</span>
+          `;
+        }
+        if (msg.settings) {
+          state.settings = { ...state.settings, ...msg.settings };
+        }
+        if (msg.scope) {
+          state.scope = msg.scope;
+        }
+        try {
+          localStorage.setItem('mlf_settings', JSON.stringify({
+            settings: state.settings,
+            scope: state.scope
+          }));
+        } catch (e) {}
+        syncScopeUI();
+        state.results = msg.results || { colors: [], fonts: [], effects: [] };
+        state.stats = msg.stats || { totalColors: 0, totalFonts: 0, totalEffects: 0 };
+        updateStats();
+        render();
+      } else if (msg.type === 'category-broken') {
+        loadingOverlay.classList.remove('active');
+        if (msg.category === 'all') {
+          state.results = { colors: [], fonts: [], effects: [] };
+          state.stats = { totalColors: 0, totalFonts: 0, totalEffects: 0 };
+        } else if (msg.category === 'colors') {
+          state.results.colors = [];
+        } else if (msg.category === 'fonts') {
+          state.results.fonts = [];
+        } else if (msg.category === 'effects') {
+          state.results.effects = [];
+        }
+        recalculateStats();
+        updateStats();
+        render();
+      } else if (msg.type === 'item-broken') {
+        // Confirmed by backend
+      }
+    };
+
+    // Request saved settings from plugin backend immediately
+    parent.postMessage({
+      pluginMessage: { type: 'get-settings' }
+    }, '*');
+
+    function recalculateStats() {
+      let totalColors = 0;
+      (state.results.colors || []).forEach(it => {
+        totalColors += (it.nodes ? it.nodes.length : 0);
+      });
+
+      let totalFonts = 0;
+      (state.results.fonts || []).forEach(it => {
+        totalFonts += (it.nodes ? it.nodes.length : 0);
+      });
+
+      let totalEffects = 0;
+      (state.results.effects || []).forEach(it => {
+        totalEffects += (it.nodes ? it.nodes.length : 0);
+      });
+
+      state.stats = {
+        totalColors,
+        totalFonts,
+        totalEffects
+      };
+    }
+
+    function removeItemFromState(itemKey) {
+      state.results.colors = (state.results.colors || []).filter(it => it.key !== itemKey);
+      state.results.fonts = (state.results.fonts || []).filter(it => it.key !== itemKey);
+      state.results.effects = (state.results.effects || []).filter(it => it.key !== itemKey);
+      state.expandedCards.delete(itemKey);
+
+      recalculateStats();
+      updateStats();
+      render();
+    }
+
+    function removeLayerFromItem(itemKey, nodeId, cardElem, rowElem) {
+      const allItems = [...(state.results.colors || []), ...(state.results.fonts || []), ...(state.results.effects || [])];
+      const item = allItems.find(it => it.key === itemKey);
+      if (!item) return;
+
+      item.nodes = (item.nodes || []).filter(n => n.id !== nodeId);
+
+      if (item.nodes.length === 0) {
+        removeItemFromState(itemKey);
+      } else {
+        if (rowElem && rowElem.parentNode) {
+          rowElem.remove();
+        }
+        if (cardElem) {
+          const countTag = cardElem.querySelector('.layer-count-tag');
+          if (countTag) {
+            countTag.textContent = `${item.nodes.length} layer${item.nodes.length === 1 ? '' : 's'}`;
+          }
+        }
+        recalculateStats();
+        updateStats();
+      }
+    }
+
+    function updateStats() {
+      if (!state.hasScanned) {
+        badgeColors.textContent = '0';
+        badgeFonts.textContent = '0';
+        badgeAll.textContent = '0';
+        btnBreakEverything.style.display = 'none';
+        return;
+      }
+
+      const uniqueColors = state.results.colors.length;
+      const uniqueFonts = state.results.fonts.length;
+      const totalUnique = uniqueColors + uniqueFonts;
+
+      badgeColors.textContent = uniqueColors;
+      badgeFonts.textContent = uniqueFonts;
+      badgeAll.textContent = totalUnique;
+
+      btnBreakEverything.style.display = totalUnique > 0 ? 'flex' : 'none';
+    }
+
+    function updateVisibility() {
+      const mainHeader = document.getElementById('main-header');
+      const headerScope = document.getElementById('header-scope');
+      const controlsBar = document.getElementById('controls-bar');
+      const footerElem = document.getElementById('footer');
+
+      if (!state.hasScanned) {
+        if (mainHeader) mainHeader.style.display = 'none';
+        if (headerScope) headerScope.style.display = 'none';
+        if (controlsBar) controlsBar.style.display = 'none';
+        if (footerElem) footerElem.style.display = 'none';
+      } else {
+        if (mainHeader) mainHeader.style.display = 'flex';
+        if (headerScope) headerScope.style.display = 'flex';
+        if (controlsBar) {
+          controlsBar.style.display = 'flex';
+          const filterRow = document.querySelector('.filter-row');
+          if (filterRow) {
+            filterRow.style.display = state.currentTab === 'settings' ? 'none' : 'flex';
+          }
+        }
+        if (footerElem) footerElem.style.display = 'flex';
+      }
+    }
+
+    function render() {
+      updateVisibility();
+      contentList.innerHTML = '';
+
+      if (state.currentTab === 'settings') {
+        renderSettings();
+        return;
+      }
+
+      if (!state.hasScanned) {
+        renderInitialEmptyState();
+        return;
+      }
+
+      let items = [];
+      if (state.currentTab === 'colors') {
+        items = [...state.results.colors];
+      } else if (state.currentTab === 'fonts') {
+        items = [...state.results.fonts];
+      } else {
+        items = [...state.results.colors, ...state.results.fonts, ...state.results.effects];
+      }
+
+      // Filter by search query
+      if (state.searchQuery) {
+        items = items.filter(item => {
+          const matchName = item.name && item.name.toLowerCase().includes(state.searchQuery);
+          const matchType = item.subType && item.subType.toLowerCase().includes(state.searchQuery);
+          const matchLayers = item.nodes && item.nodes.some(n => n.name && n.name.toLowerCase().includes(state.searchQuery));
+          return matchName || matchType || matchLayers;
+        });
+      }
+
+      if (items.length === 0) {
+        renderEmptyState();
+        return;
+      }
+
+      items.forEach(item => {
+        const card = createItemCard(item);
+        contentList.appendChild(card);
+      });
+    }
+
+    function renderSettings() {
+      const panel = document.createElement('div');
+      panel.className = 'settings-panel';
+
+      const topBarHtml = !state.hasScanned ? `
+        <div class="settings-top-bar">
+          <button id="btn-back-to-scan" class="btn-back-settings" title="Back to Scan">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+            <span>Back</span>
+          </button>
+          <span style="font-weight: 600; font-size: 12px; margin-left: 4px;">Detection Settings</span>
+        </div>
+      ` : '';
+
+      panel.innerHTML = `
+        ${topBarHtml}
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <span>Color & Style Detection</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Shape Colors</div>
+              <div class="setting-desc">Detect missing or remote colors on vector shapes, frames, and components</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-shape-colors" ${state.settings.detectShapeColors !== false ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Text Colors</div>
+              <div class="setting-desc">Detect missing or remote colors applied to text layers</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-text-colors" ${state.settings.detectTextColors !== false ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Missing Fill Styles</div>
+              <div class="setting-desc">Detect unlinked or remote color styles applied to layer fills</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-fills" ${state.settings.detectFills ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Missing Stroke Styles</div>
+              <div class="setting-desc">Detect unlinked or remote color styles applied to strokes & borders</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-strokes" ${state.settings.detectStrokes ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Bound Color Variables</div>
+              <div class="setting-desc">Detect missing or remote design tokens and color variable bindings</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-variables" ${state.settings.detectVariables ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <span>Typography & Font Detection</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Missing Text Styles</div>
+              <div class="setting-desc">Detect unlinked or remote typography styles</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-text-styles" ${state.settings.detectTextStyles ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Missing Font Families</div>
+              <div class="setting-desc">Detect text layers using fonts not installed on this system</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-missing-fonts" ${state.settings.detectMissingFonts ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <span>Effects & Layer Scope</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Missing Effect Styles</div>
+              <div class="setting-desc">Detect unlinked or remote shadow and blur effect styles</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-effects" ${state.settings.detectEffects ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-left">
+              <div class="setting-name">Scan Hidden Layers</div>
+              <div class="setting-desc">Include invisible or hidden layers during document scans</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="set-hidden" ${state.settings.scanHiddenLayers ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-footer-actions">
+          <button id="btn-reset-settings" class="btn-reset-settings">Reset to Defaults</button>
+        </div>
+      `;
+
+      // Wire checkboxes
+      const bindToggle = (elemId, key) => {
+        const checkbox = panel.querySelector('#' + elemId);
+        if (checkbox) {
+          checkbox.addEventListener('change', () => {
+            state.settings[key] = checkbox.checked;
+            saveSettings();
+          });
+        }
+      };
+
+      bindToggle('set-shape-colors', 'detectShapeColors');
+      bindToggle('set-text-colors', 'detectTextColors');
+      bindToggle('set-fills', 'detectFills');
+      bindToggle('set-strokes', 'detectStrokes');
+      bindToggle('set-variables', 'detectVariables');
+      bindToggle('set-text-styles', 'detectTextStyles');
+      bindToggle('set-missing-fonts', 'detectMissingFonts');
+      bindToggle('set-effects', 'detectEffects');
+      bindToggle('set-hidden', 'scanHiddenLayers');
+
+      const resetBtn = panel.querySelector('#btn-reset-settings');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          state.settings = {
+            detectShapeColors: true,
+            detectTextColors: true,
+            detectFills: true,
+            detectStrokes: true,
+            detectVariables: true,
+            detectTextStyles: true,
+            detectMissingFonts: true,
+            detectEffects: true,
+            scanHiddenLayers: true
+          };
+          saveSettings();
+          renderSettings();
+        });
+      }
+
+      const backBtn = panel.querySelector('#btn-back-to-scan');
+      if (backBtn) {
+        backBtn.addEventListener('click', () => {
+          state.currentTab = 'all';
+          render();
+        });
+      }
+
+      contentList.appendChild(panel);
+    }
+
+    function saveSettings() {
+      try {
+        localStorage.setItem('mlf_settings', JSON.stringify({
+          settings: state.settings,
+          scope: state.scope
+        }));
+      } catch (e) {}
+
+      if (state.hasScanned) {
+        loadingOverlay.classList.add('active');
+        loadingStatus.textContent = 'Updating scan with new settings...';
+        parent.postMessage({
+          pluginMessage: {
+            type: 'save-settings',
+            scope: state.scope,
+            settings: state.settings,
+            scan: true
+          }
+        }, '*');
+      } else {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'save-settings',
+            scope: state.scope,
+            settings: state.settings,
+            scan: false
+          }
+        }, '*');
+      }
+    }
+
+    function renderInitialEmptyState() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'initial-empty-wrapper';
+      wrapper.innerHTML = `
+        <div class="initial-empty-card">
+          <div class="initial-empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <circle cx="11" cy="11" r="4"/>
+              <line x1="21" y1="21" x2="14" y2="14"/>
+            </svg>
+          </div>
+          
+          <div class="initial-empty-title">Find Missing Libraries</div>
+          <div class="initial-empty-desc">
+            Scan your Figma document to find unlinked color styles, remote variables, and missing fonts.
+          </div>
+
+          <div class="initial-scope-container">
+            <span class="initial-scope-label">Scan Scope</span>
+            <div class="initial-scope-selector">
+              <button class="initial-scope-btn ${state.scope === 'all' ? 'active' : ''}" data-scope="all">All Pages</button>
+              <button class="initial-scope-btn ${state.scope === 'current' ? 'active' : ''}" data-scope="current">Current Page</button>
+            </div>
+          </div>
+
+          <button id="btn-start-scan" class="btn-primary-start-scan">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span>Start Scan</span>
+          </button>
+
+          <button id="btn-open-settings" class="btn-settings-link">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>Detection Settings</span>
+          </button>
+        </div>
+      `;
+      contentList.appendChild(wrapper);
+
+      // Wire scope buttons inside the card
+      wrapper.querySelectorAll('.initial-scope-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setScope(btn.dataset.scope);
+        });
+      });
+
+      // Wire start scan button
+      const startBtn = wrapper.querySelector('#btn-start-scan');
+      if (startBtn) {
+        startBtn.addEventListener('click', () => {
+          triggerScan();
+        });
+      }
+
+      // Wire settings button
+      const settingsBtn = wrapper.querySelector('#btn-open-settings');
+      if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+          state.currentTab = 'settings';
+          render();
+        });
+      }
+    }
+
+    function renderEmptyState() {
+      const isFiltered = !!state.searchQuery;
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'empty-state';
+      const iconSvg = isFiltered
+        ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16" y2="16"/></svg>`
+        : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+
+      emptyDiv.innerHTML = `
+        <div class="empty-icon">${iconSvg}</div>
+        <div class="empty-title">${isFiltered ? 'No matching items' : 'No Missing Libraries Found!'}</div>
+        <div class="empty-desc">
+          ${isFiltered 
+            ? 'Try adjusting your search terms or <a href="#" id="link-clear-search" style="color:var(--primary);text-decoration:none;font-weight:500;">clear search</a>.' 
+            : `All styles on ${state.scope === 'all' ? 'all pages' : 'this page'} are linked and available.`}
+        </div>
+      `;
+      contentList.appendChild(emptyDiv);
+
+      if (isFiltered) {
+        const linkClear = emptyDiv.querySelector('#link-clear-search');
+        if (linkClear) {
+          linkClear.addEventListener('click', (e) => {
+            e.preventDefault();
+            clearSearch();
+          });
+        }
+      }
+    }
+
+    function createItemCard(item) {
+      const card = document.createElement('div');
+      card.className = 'item-card';
+      const isExpanded = state.expandedCards.has(item.key);
+      if (isExpanded) card.classList.add('expanded');
+
+      // Visual Swatch or Font icon
+      let iconHtml = '';
+      if (item.category === 'color') {
+        iconHtml = `<div class="swatch" style="background-color: ${item.previewColor || '#ccc'};" title="${item.previewColor || ''}"></div>`;
+      } else if (item.category === 'font') {
+        iconHtml = `<div class="font-icon-badge" title="Missing Font">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 7 4 4 20 4 20 7"/>
+            <line x1="9" y1="20" x2="15" y2="20"/>
+            <line x1="12" y1="4" x2="12" y2="20"/>
+          </svg>
+        </div>`;
+      } else {
+        iconHtml = `<div class="font-icon-badge" title="Effect Style">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 3v18"/>
+            <path d="M12 8l4 4-4 4"/>
+          </svg>
+        </div>`;
+      }
+
+      // Subtype label
+      let pillClass = 'fill';
+      let pillLabel = 'Fill Style';
+      if (item.subType === 'stroke-style') {
+        pillClass = 'stroke';
+        pillLabel = 'Stroke Style';
+      } else if (item.subType === 'variable') {
+        pillClass = 'variable';
+        pillLabel = 'Variable';
+      } else if (item.subType === 'text-style') {
+        pillClass = 'text-style';
+        pillLabel = 'Text Style';
+      } else if (item.subType === 'missing-font') {
+        pillClass = 'font';
+        pillLabel = 'Missing Font';
+      }
+
+      const layerCount = item.nodes ? item.nodes.length : 0;
+      const firstNode = item.nodes && item.nodes.length > 0 ? item.nodes[0] : null;
+      let displayName = item.name || '';
+      if (!displayName || displayName.startsWith('Remote Style (') || displayName.startsWith('Remote Variable (')) {
+        if (item.category === 'color' && item.previewColor) {
+          displayName = `Remote Color (${item.previewColor})`;
+        } else if (item.category === 'font') {
+          displayName = item.fontFamily || 'Remote Text Style';
+        } else if (item.category === 'effect') {
+          displayName = 'Remote Effect Style';
+        } else {
+          displayName = 'Missing Library Style';
+        }
+      }
+
+      card.innerHTML = `
+        <div class="item-header">
+          <div class="item-left">
+            ${iconHtml}
+            <div class="item-info">
+              <div class="item-title" title="${displayName}">${displayName}</div>
+              <div class="item-badge-row">
+                <span class="type-pill ${pillClass}">${pillLabel}</span>
+                <span class="layer-count-tag">${layerCount} layer${layerCount === 1 ? '' : 's'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="item-actions">
+            <button class="btn-action focus" title="Focus first affected layer">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button class="btn-action select-all" title="Select all affected layers on canvas">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <circle cx="12" cy="12" r="6"/>
+                <circle cx="12" cy="12" r="2"/>
+              </svg>
+            </button>
+            <button class="btn-action break" title="Break / detach this missing style">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3"/>
+                <circle cx="6" cy="18" r="3"/>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+              </svg>
+            </button>
+            <div class="toggle-drawer-icon" title="View affected layers">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="layers-drawer"></div>
+      `;
+
+      // Header click expands/collapses
+      const headerEl = card.querySelector('.item-header');
+      headerEl.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-action')) return;
+        card.classList.toggle('expanded');
+        if (card.classList.contains('expanded')) {
+          state.expandedCards.add(item.key);
+        } else {
+          state.expandedCards.delete(item.key);
+        }
+      });
+
+      // Focus button (focuses first node)
+      const focusBtn = card.querySelector('.btn-action.focus');
+      focusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (firstNode) {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'focus-node',
+              nodeId: firstNode.id,
+              pageId: firstNode.pageId
+            }
+          }, '*');
+        }
+      });
+
+      // Select All button
+      const selectBtn = card.querySelector('.btn-action.select-all');
+      selectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (item.nodes && item.nodes.length > 0) {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'select-nodes',
+              nodeIds: item.nodes.map(n => n.id),
+              pageId: firstNode ? firstNode.pageId : null
+            }
+          }, '*');
+        }
+      });
+
+      // Break item button
+      const breakBtn = card.querySelector('.btn-action.break');
+      breakBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        parent.postMessage({
+          pluginMessage: {
+            type: 'break-item',
+            itemKey: item.key,
+            subType: item.subType,
+            rawId: item.rawId,
+            nodeIds: item.nodes ? item.nodes.map(n => n.id) : [],
+            replacementFont: state.selectedFont,
+            scope: state.scope
+          }
+        }, '*');
+
+        // Optimistic removal: instantly removes card from state & UI without blocking re-scan
+        removeItemFromState(item.key);
+      });
+
+      // Render individual layer rows in drawer
+      const drawer = card.querySelector('.layers-drawer');
+      if (item.nodes && item.nodes.length > 0) {
+        item.nodes.forEach(node => {
+          const row = document.createElement('div');
+          row.className = 'layer-row';
+          row.innerHTML = `
+            <div class="layer-meta">
+              <span class="layer-type-tag">${node.type}</span>
+              <span class="layer-name" title="${node.name}">${node.name}</span>
+              <span class="layer-page-pill">${node.pageName || 'Page'}</span>
+            </div>
+            <div class="layer-actions">
+              <button class="layer-btn focus-layer" title="Focus layer">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+              <button class="layer-btn break-single" title="Detach this layer only">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="6" cy="6" r="3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                  <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                  <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                </svg>
+              </button>
+            </div>
+          `;
+
+          // Row focus
+          row.querySelector('.focus-layer').addEventListener('click', (e) => {
+            e.stopPropagation();
+            parent.postMessage({
+              pluginMessage: {
+                type: 'focus-node',
+                nodeId: node.id,
+                pageId: node.pageId
+              }
+            }, '*');
+          });
+
+          // Row single break
+          row.querySelector('.break-single').addEventListener('click', (e) => {
+            e.stopPropagation();
+            parent.postMessage({
+              pluginMessage: {
+                type: 'break-item',
+                itemKey: item.key,
+                subType: item.subType,
+                rawId: item.rawId,
+                nodeIds: [node.id],
+                replacementFont: state.selectedFont,
+                scope: state.scope
+              }
+            }, '*');
+
+            // Optimistic removal: instantly removes this layer row without blocking re-scan
+            removeLayerFromItem(item.key, node.id, card, row);
+          });
+
+          drawer.appendChild(row);
+        });
+      }
+
+      return card;
+    }
+
+    // Initial render - display initial empty state
+    render();
+    updateStats();
+  </script>
+</body>
+</html>
