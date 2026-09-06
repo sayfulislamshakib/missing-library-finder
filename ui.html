@@ -1191,30 +1191,129 @@
     .page-scan-badge {
       font-size: 10px;
       font-weight: 600;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 4px;
       flex-shrink: 0;
       letter-spacing: 0.02em;
+      border: 1px solid transparent;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      line-height: 1.3;
+      box-sizing: border-box;
+      min-height: 19px;
+    }
+
+    button.page-scan-badge {
+      cursor: pointer;
+      font-family: inherit;
+      outline: none;
+      user-select: none;
     }
 
     .page-scan-badge.completed {
       color: #10b981;
       background: rgba(16, 185, 129, 0.14);
+      border-color: transparent;
     }
 
     .page-scan-badge.active {
       color: #18a0fb;
       background: rgba(24, 160, 251, 0.2);
+      border-color: transparent;
     }
 
     .page-scan-badge.next {
       color: #94a3b8;
       background: rgba(148, 163, 184, 0.12);
+      border-color: transparent;
     }
 
     .page-scan-badge.pending {
       color: #64748b;
       background: transparent;
+      border-color: transparent;
+    }
+
+    .page-scan-badge.paused,
+    .page-scan-badge.skipped {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.16);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .page-scan-row.paused {
+      opacity: 0.6;
+      background: rgba(245, 158, 11, 0.04);
+    }
+
+    .page-scan-icon.paused {
+      color: #fbbf24;
+    }
+
+    .page-scan-badge .badge-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .page-scan-badge .badge-hover-action {
+      display: none;
+      align-items: center;
+      gap: 3px;
+    }
+
+    /* On hover of button or row, show Pause icon on Queued / Up Next / Active */
+    button.page-scan-badge.next:hover,
+    button.page-scan-badge.pending:hover,
+    button.page-scan-badge.active:hover,
+    .page-scan-row.next:hover button.page-scan-badge:not(.paused),
+    .page-scan-row.pending:hover button.page-scan-badge:not(.paused),
+    .page-scan-row.active:hover button.page-scan-badge:not(.paused) {
+      background: rgba(245, 158, 11, 0.22);
+      border-color: rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.25);
+    }
+
+    button.page-scan-badge.next:hover .badge-label,
+    button.page-scan-badge.pending:hover .badge-label,
+    button.page-scan-badge.active:hover .badge-label,
+    .page-scan-row.next:hover button.page-scan-badge:not(.paused) .badge-label,
+    .page-scan-row.pending:hover button.page-scan-badge:not(.paused) .badge-label,
+    .page-scan-row.active:hover button.page-scan-badge:not(.paused) .badge-label {
+      display: none;
+    }
+
+    button.page-scan-badge.next:hover .badge-hover-action,
+    button.page-scan-badge.pending:hover .badge-hover-action,
+    button.page-scan-badge.active:hover .badge-hover-action,
+    .page-scan-row.next:hover button.page-scan-badge:not(.paused) .badge-hover-action,
+    .page-scan-row.pending:hover button.page-scan-badge:not(.paused) .badge-hover-action,
+    .page-scan-row.active:hover button.page-scan-badge:not(.paused) .badge-hover-action {
+      display: inline-flex;
+    }
+
+    /* On hover of Paused button, show Resume icon */
+    button.page-scan-badge.paused:hover,
+    .page-scan-row.paused:hover button.page-scan-badge.paused {
+      background: rgba(59, 130, 246, 0.22);
+      border-color: rgba(59, 130, 246, 0.5);
+      color: #60a5fa;
+      box-shadow: 0 0 6px rgba(59, 130, 246, 0.25);
+    }
+
+    button.page-scan-badge.paused:hover .badge-label,
+    .page-scan-row.paused:hover button.page-scan-badge.paused .badge-label {
+      display: none;
+    }
+
+    button.page-scan-badge.paused:hover .badge-hover-action,
+    .page-scan-row.paused:hover button.page-scan-badge.paused .badge-hover-action {
+      display: inline-flex;
     }
 
     .btn-cancel-scan {
@@ -1491,10 +1590,16 @@
     const badgeColors = document.getElementById('badge-colors');
     const badgeFonts = document.getElementById('badge-fonts');
 
-    // Page Scan Queue rendering and state
+    // Page Scan Queue rendering, pause/skip and state
+    const pausedPages = new Set();
+    let lastScanProgressData = null;
+
     function initLoadingPages(pages) {
       if (!loadingPagesBox || !loadingPagesList) return;
       loadingPagesList.innerHTML = '';
+      pausedPages.clear();
+      lastScanProgressData = null;
+
       if (!pages || pages.length === 0) {
         loadingPagesBox.style.display = 'none';
         return;
@@ -1512,18 +1617,52 @@
         row.className = 'page-scan-row ' + (idx === 0 ? 'active' : (idx === 1 ? 'next' : 'pending'));
         row.id = `scan-page-row-${idx}`;
         row.dataset.pageIndex = idx;
+        row.dataset.pageId = p.id;
 
         let iconHtml = '';
         let badgeHtml = '';
         if (idx === 0) {
           iconHtml = '<span class="scan-radar-emitter"><span class="scan-pulse-ring"></span><span class="scan-pulse-ring ring-2"></span><span class="scan-pulse-dot"></span></span>';
-          badgeHtml = '<span class="page-scan-badge active">Scanning</span>';
+          badgeHtml = `
+            <button type="button" class="page-scan-badge active" data-page-index="${idx}" data-page-id="${p.id}" title="Pause/Skip this page from scan">
+              <span class="badge-label">Scanning</span>
+              <span class="badge-hover-action">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+                <span>Pause</span>
+              </span>
+            </button>
+          `;
         } else if (idx === 1) {
           iconHtml = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/></svg>';
-          badgeHtml = '<span class="page-scan-badge next">Up Next</span>';
+          badgeHtml = `
+            <button type="button" class="page-scan-badge next" data-page-index="${idx}" data-page-id="${p.id}" title="Pause/Skip this page from scan">
+              <span class="badge-label">Up Next</span>
+              <span class="badge-hover-action">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+                <span>Pause</span>
+              </span>
+            </button>
+          `;
         } else {
           iconHtml = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#64748b"/></svg>';
-          badgeHtml = '<span class="page-scan-badge pending">Queued</span>';
+          badgeHtml = `
+            <button type="button" class="page-scan-badge pending" data-page-index="${idx}" data-page-id="${p.id}" title="Pause/Skip this page from scan">
+              <span class="badge-label">Queued</span>
+              <span class="badge-hover-action">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+                <span>Pause</span>
+              </span>
+            </button>
+          `;
         }
 
         row.innerHTML = `
@@ -1537,6 +1676,7 @@
 
     function updatePagesProgress(data) {
       if (!loadingPagesList) return;
+      lastScanProgressData = data;
       const currentIdx = typeof data.currentPageIndex === 'number' ? data.currentPageIndex : -1;
       const percent = typeof data.percent === 'number' ? data.percent : 0;
 
@@ -1550,14 +1690,44 @@
         const badgeWrap = row.querySelector('.page-scan-badge-wrap');
         if (!iconEl || !badgeWrap) return;
 
-        if (idx < currentIdx) {
+        const pId = row.dataset.pageId;
+        const isPaused = pausedPages.has(idx) || (pId && pausedPages.has(pId)) || row.classList.contains('skipped');
+
+        if (isPaused) {
+          if (idx < currentIdx && row.classList.contains('skipped')) {
+            row.className = 'page-scan-row paused skipped';
+            iconEl.className = 'page-scan-icon paused';
+            iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+            badgeWrap.innerHTML = '<span class="page-scan-badge paused">Skipped</span>';
+          } else {
+            row.className = 'page-scan-row paused';
+            iconEl.className = 'page-scan-icon paused';
+            iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+            badgeWrap.innerHTML = `
+              <button type="button" class="page-scan-badge paused" data-page-index="${idx}" data-page-id="${pId || ''}" title="Resume scanning this page">
+                <span class="badge-label">
+                  <svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 2px;">
+                    <rect x="6" y="4" width="4" height="16" rx="1"/>
+                    <rect x="14" y="4" width="4" height="16" rx="1"/>
+                  </svg>
+                  <span>Paused</span>
+                </span>
+                <span class="badge-hover-action">
+                  <svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  <span>Resume</span>
+                </span>
+              </button>
+            `;
+          }
+        } else if (idx < currentIdx) {
           // Completed page: check on left side, done badge
           row.className = 'page-scan-row completed';
           iconEl.className = 'page-scan-icon completed';
           iconEl.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-          if (!row.dataset.hasLayerCount) {
-            badgeWrap.innerHTML = '<span class="page-scan-badge completed">Done</span>';
-          }
+          const doneText = row.dataset.hasLayerCount ? row.dataset.layerCountText : 'Done';
+          badgeWrap.innerHTML = `<span class="page-scan-badge completed">${doneText}</span>`;
         } else if (idx === currentIdx) {
           // Active currently scanning page: dual ripple radar dot
           row.className = 'page-scan-row active';
@@ -1569,19 +1739,52 @@
             const pagePct = Math.round((data.inspectedLayers / data.totalLayers) * 100);
             scanStatusText = `Scanning (${pagePct}%)`;
           }
-          badgeWrap.innerHTML = `<span class="page-scan-badge active">${scanStatusText}</span>`;
+          badgeWrap.innerHTML = `
+            <button type="button" class="page-scan-badge active" data-page-index="${idx}" data-page-id="${pId || ''}" title="Pause / Skip scanning this page">
+              <span class="badge-label">${scanStatusText}</span>
+              <span class="badge-hover-action">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+                <span>Pause</span>
+              </span>
+            </button>
+          `;
         } else if (idx === currentIdx + 1) {
           // Immediate next page
           row.className = 'page-scan-row next';
           iconEl.className = 'page-scan-icon';
           iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/></svg>';
-          badgeWrap.innerHTML = '<span class="page-scan-badge next">Up Next</span>';
+          badgeWrap.innerHTML = `
+            <button type="button" class="page-scan-badge next" data-page-index="${idx}" data-page-id="${pId || ''}" title="Pause / Skip scanning this page">
+              <span class="badge-label">Up Next</span>
+              <span class="badge-hover-action">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+                <span>Pause</span>
+              </span>
+            </button>
+          `;
         } else {
           // Upcoming queued pages
           row.className = 'page-scan-row pending';
           iconEl.className = 'page-scan-icon';
           iconEl.innerHTML = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#64748b"/></svg>';
-          badgeWrap.innerHTML = '<span class="page-scan-badge pending">Queued</span>';
+          badgeWrap.innerHTML = `
+            <button type="button" class="page-scan-badge pending" data-page-index="${idx}" data-page-id="${pId || ''}" title="Pause / Skip scanning this page">
+              <span class="badge-label">Queued</span>
+              <span class="badge-hover-action">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+                <span>Pause</span>
+              </span>
+            </button>
+          `;
         }
       });
 
@@ -1596,9 +1799,12 @@
       if (!loadingPagesList) return;
       const row = document.getElementById(`scan-page-row-${pageIndex}`);
       if (!row) return;
+      if (row.classList.contains('skipped')) return;
 
       row.className = 'page-scan-row completed';
       row.dataset.hasLayerCount = 'true';
+      const layerText = typeof nodeCount === 'number' ? `${nodeCount.toLocaleString()} layers` : 'Done';
+      row.dataset.layerCountText = layerText;
       const iconEl = row.querySelector('.page-scan-icon');
       if (iconEl) {
         iconEl.className = 'page-scan-icon completed';
@@ -1606,9 +1812,66 @@
       }
       const badgeWrap = row.querySelector('.page-scan-badge-wrap');
       if (badgeWrap) {
-        const layerText = typeof nodeCount === 'number' ? `${nodeCount.toLocaleString()} layers` : 'Done';
         badgeWrap.innerHTML = `<span class="page-scan-badge completed">${layerText}</span>`;
       }
+    }
+
+    function skipLoadingPage(pageIndex) {
+      if (!loadingPagesList) return;
+      const row = document.getElementById(`scan-page-row-${pageIndex}`);
+      if (!row) return;
+
+      row.className = 'page-scan-row paused skipped';
+      row.classList.add('skipped');
+      const iconEl = row.querySelector('.page-scan-icon');
+      if (iconEl) {
+        iconEl.className = 'page-scan-icon paused';
+        iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+      }
+      const badgeWrap = row.querySelector('.page-scan-badge-wrap');
+      if (badgeWrap) {
+        badgeWrap.innerHTML = '<span class="page-scan-badge paused">Skipped</span>';
+      }
+    }
+
+    if (loadingPagesList) {
+      loadingPagesList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button.page-scan-badge');
+        if (!btn) return;
+        e.stopPropagation();
+
+        const pIdx = parseInt(btn.dataset.pageIndex, 10);
+        const pId = btn.dataset.pageId;
+        const isPaused = pausedPages.has(pIdx) || (pId && pausedPages.has(pId));
+
+        if (isPaused) {
+          pausedPages.delete(pIdx);
+          if (pId) pausedPages.delete(pId);
+          parent.postMessage({
+            pluginMessage: {
+              type: 'toggle-page-skip',
+              pageIndex: pIdx,
+              pageId: pId,
+              skip: false
+            }
+          }, '*');
+        } else {
+          pausedPages.add(pIdx);
+          if (pId) pausedPages.add(pId);
+          parent.postMessage({
+            pluginMessage: {
+              type: 'toggle-page-skip',
+              pageIndex: pIdx,
+              pageId: pId,
+              skip: true
+            }
+          }, '*');
+        }
+
+        if (lastScanProgressData) {
+          updatePagesProgress(lastScanProgressData);
+        }
+      });
     }
 
     function syncScopeUI() {
@@ -1773,6 +2036,8 @@
         updatePagesProgress(msg);
       } else if (msg.type === 'scan-page-completed') {
         completeLoadingPage(msg.pageIndex, msg.nodeCount);
+      } else if (msg.type === 'scan-page-skipped') {
+        skipLoadingPage(msg.pageIndex);
       } else if (msg.type === 'scan-results') {
         state.hasScanned = true;
         loadingOverlay.classList.remove('active');

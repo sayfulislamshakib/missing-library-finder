@@ -18,6 +18,10 @@ let cachedFontFamilySet = null;
 // Scan state tracking to prevent overlapping scans and support cancellation
 let isScanning = false;
 let isScanCancelled = false;
+let skippedPages = new Set();
+let skipCurrentPage = false;
+let currentPageIndexBeingScanned = -1;
+let currentPageIdBeingScanned = null;
 
 // Helper: yield execution to allow UI event loop and IPC messages to process without freezing
 function yieldToEventLoop() {
@@ -325,6 +329,10 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
   }
   isScanning = true;
   isScanCancelled = false;
+  skipCurrentPage = false;
+  currentPageIndexBeingScanned = -1;
+  currentPageIdBeingScanned = null;
+  skippedPages.clear();
 
   if (newSettings && typeof newSettings === 'object') {
     currentSettings = { ...currentSettings, ...newSettings };
@@ -432,6 +440,20 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
     for (let pIdx = 0; pIdx < pagesToScan.length; pIdx++) {
       if (isScanCancelled) break;
       const page = pagesToScan[pIdx];
+      currentPageIndexBeingScanned = pIdx;
+      currentPageIdBeingScanned = page.id;
+
+      // Check if page was paused/skipped by user from queue
+      if (skippedPages.has(page.id) || skippedPages.has(pIdx)) {
+        figma.ui.postMessage({
+          type: 'scan-page-skipped',
+          pageIndex: pIdx,
+          pageId: page.id,
+          pageName: page.name
+        });
+        await yieldToEventLoop();
+        continue;
+      }
 
       const basePercent = Math.round((pIdx / pagesToScan.length) * 100);
       figma.ui.postMessage({
@@ -481,6 +503,16 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
 
       for (let nIdx = 0; nIdx < allNodes.length; nIdx++) {
         if (isScanCancelled) break;
+        if (skipCurrentPage) {
+          skipCurrentPage = false;
+          figma.ui.postMessage({
+            type: 'scan-page-skipped',
+            pageIndex: pIdx,
+            pageId: page.id,
+            pageName: page.name
+          });
+          break;
+        }
 
         // Yield every 150 nodes to keep UI responsive and report progress
         if (nIdx > 0 && nIdx % 150 === 0) {
@@ -892,13 +924,15 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
         }
       }
 
-      // Notify UI that this page is completed
-      figma.ui.postMessage({
-        type: 'scan-page-completed',
-        pageIndex: pIdx,
-        pageName: page.name,
-        nodeCount: allNodes.length
-      });
+      // Notify UI that this page is completed (if not skipped)
+      if (!skippedPages.has(page.id) && !skippedPages.has(pIdx)) {
+        figma.ui.postMessage({
+          type: 'scan-page-completed',
+          pageIndex: pIdx,
+          pageName: page.name,
+          nodeCount: allNodes.length
+        });
+      }
     }
   } catch (scanErr) {
     console.error('Scan error:', scanErr);
@@ -1323,6 +1357,26 @@ figma.ui.onmessage = async (msg) => {
 
     case 'cancel-scan':
       isScanCancelled = true;
+      break;
+
+    case 'toggle-page-skip':
+      if (msg.pageId) {
+        if (msg.skip) {
+          skippedPages.add(msg.pageId);
+        } else {
+          skippedPages.delete(msg.pageId);
+        }
+      }
+      if (typeof msg.pageIndex === 'number') {
+        if (msg.skip) {
+          skippedPages.add(msg.pageIndex);
+        } else {
+          skippedPages.delete(msg.pageIndex);
+        }
+      }
+      if (msg.skip && (msg.pageId === currentPageIdBeingScanned || msg.pageIndex === currentPageIndexBeingScanned)) {
+        skipCurrentPage = true;
+      }
       break;
 
     case 'save-settings':
