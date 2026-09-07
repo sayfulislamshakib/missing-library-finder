@@ -857,6 +857,9 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
       }
 
       const basePercent = Math.round((pIdx / pagesToScan.length) * 100);
+      const pageLoadingStatus = pagesToScan.length > 1
+        ? `Page ${pIdx + 1}/${pagesToScan.length}: Loading ${page.name}...`
+        : `Loading ${page.name}...`;
       figma.ui.postMessage({
         type: 'scan-progress',
         currentPageIndex: pIdx,
@@ -864,7 +867,7 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
         totalPages: pagesToScan.length,
         inspectedLayers: 0,
         totalLayers: 0,
-        status: `Page ${pIdx + 1}/${pagesToScan.length}: Loading ${page.name}...`,
+        status: pageLoadingStatus,
         percent: basePercent
       });
 
@@ -928,6 +931,9 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
           if (isScanCancelled) break;
           const pageRatio = allNodes.length > 0 ? (nIdx / allNodes.length) : 0;
           const currentPercent = Math.min(99, Math.round(((pIdx + pageRatio) / pagesToScan.length) * 100));
+          const scanStatusText = pagesToScan.length > 1
+            ? `Page ${pIdx + 1}/${pagesToScan.length}: Scanning ${page.name}...`
+            : `Scanning ${page.name}...`;
           figma.ui.postMessage({
             type: 'scan-progress',
             currentPageIndex: pIdx,
@@ -935,7 +941,7 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
             totalPages: pagesToScan.length,
             inspectedLayers: nIdx,
             totalLayers: allNodes.length,
-            status: `Scanning ${page.name} (${Math.round(pageRatio * 100)}%)...`,
+            status: scanStatusText,
             percent: currentPercent
           });
         }
@@ -1191,8 +1197,8 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
         }
       }
 
-      // Notify UI that this page is completed (if not skipped)
-      if (!skippedPages.has(page.id) && !skippedPages.has(pIdx)) {
+      // Notify UI that this page is completed (if not skipped and not cancelled)
+      if (!isScanCancelled && !skippedPages.has(page.id) && !skippedPages.has(pIdx)) {
         figma.ui.postMessage({
           type: 'scan-page-completed',
           pageIndex: pIdx,
@@ -1203,7 +1209,7 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
     }
 
     // Broadcast 100% completion before building and sending final results
-    if (pagesToScan.length > 0) {
+    if (!isScanCancelled && pagesToScan.length > 0) {
       const lastPage = pagesToScan[pagesToScan.length - 1];
       figma.ui.postMessage({
         type: 'scan-progress',
@@ -1221,6 +1227,13 @@ async function scanMissingItems(scope = 'all', newSettings = null) {
     console.error('Scan error:', scanErr);
   } finally {
     isScanning = false;
+
+    if (isScanCancelled) {
+      figma.ui.postMessage({
+        type: 'scan-cancelled'
+      });
+      return;
+    }
 
     try {
       const colorsList = Array.from(missingColorsMap.values()).map(item => ({

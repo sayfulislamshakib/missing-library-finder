@@ -70,6 +70,12 @@
       -webkit-user-select: none;
     }
 
+    button {
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
     body {
       background-color: var(--bg);
       color: var(--text);
@@ -148,7 +154,7 @@
       background: var(--bg);
       color: var(--text);
       box-shadow: var(--shadow-sm);
-      font-weight: 600;
+      font-weight: 500;
     }
 
     .header-actions {
@@ -186,7 +192,7 @@
       border: none;
       color: var(--text-muted);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       border-bottom: 2px solid transparent;
       display: flex;
@@ -414,6 +420,7 @@
       border: 1px solid var(--border);
       color: var(--text-muted);
       font-size: 11px;
+      font-weight: 500;
       cursor: pointer;
       padding: 4px 10px;
       border-radius: var(--radius-sm);
@@ -861,7 +868,7 @@
       background: transparent;
       color: var(--text-muted);
       border-radius: 3px;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.15s ease;
@@ -870,7 +877,7 @@
     .initial-scope-btn.active {
       background: var(--primary);
       color: white;
-      font-weight: 600;
+      font-weight: 500;
     }
 
     .btn-primary-start-scan {
@@ -880,8 +887,8 @@
       border: 1px solid var(--primary);
       background: var(--primary);
       color: white;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -907,6 +914,7 @@
       border: none;
       color: var(--text-muted);
       font-size: 11px;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -964,7 +972,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 16px;
+      padding: 24px 16px;
+      box-sizing: border-box;
       z-index: 100;
       opacity: 0;
       pointer-events: none;
@@ -982,20 +992,45 @@
       align-items: center;
       gap: 8px;
       width: 100%;
+      box-sizing: border-box;
+    }
+
+    .loading-progress-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 10px;
+      padding: 0 2px;
+      box-sizing: border-box;
     }
 
     .loading-status {
       font-size: 12px;
       font-weight: 600;
       color: #f3f4f6 !important;
-      text-align: center;
-      max-width: 90%;
+      text-align: left;
       line-height: 1.4;
       letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .loading-total-progress-count {
+      font-size: 12px;
+      font-weight: 700;
+      color: #18a0fb;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      letter-spacing: -0.01em;
+      text-align: right;
     }
 
     .loading-progress-bar {
-      width: 240px;
+      width: 100%;
       height: 5px;
       background: rgba(255, 255, 255, 0.12);
       border-radius: 3px;
@@ -1012,16 +1047,16 @@
       border-radius: 3px;
     }
 
-    /* Pages Scan Queue Box */
+    /* Pages Scan Queue (Full Width) */
     .loading-pages-box {
       width: 100%;
-      max-width: 400px;
-      height: 380px;
-      max-height: 400px;
-      background: rgba(0, 0, 0, 0.45);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 8px;
-      padding: 10px 12px;
+      flex: 1;
+      min-height: 0;
+      max-height: 420px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -1037,7 +1072,7 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: #9ca3af;
-      padding: 0 4px 2px;
+      padding: 0 2px 2px;
       flex-shrink: 0;
     }
 
@@ -1068,12 +1103,12 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 5px 8px;
+      padding: 6px 10px;
       border-radius: 6px;
       font-size: 11px;
       transition: background 0.15s ease, border-color 0.15s ease;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     .page-scan-row.active {
@@ -1320,7 +1355,7 @@
       margin-top: 6px;
       padding: 6px 16px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       color: #f87171;
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid rgba(239, 68, 68, 0.4);
@@ -1372,7 +1407,7 @@
       border: none;
       border-radius: var(--radius);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1395,7 +1430,7 @@
       border: 1px solid var(--danger-border);
       border-radius: var(--radius);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1482,13 +1517,15 @@
   <!-- Loading Overlay -->
   <div id="loading" class="loading-container">
     <div class="loading-header">
-      <div id="loading-status" class="loading-status">Scanning document for missing libraries...</div>
+      <div class="loading-progress-top">
+        <div id="loading-status" class="loading-status" title="Scanning document for missing libraries...">Scanning document for missing libraries...</div>
+        <div id="loading-total-progress-count" class="loading-total-progress-count" title="Total Progress">0%</div>
+      </div>
       <div class="loading-progress-bar"><div id="loading-progress-fill" class="loading-progress-fill"></div></div>
     </div>
     <div id="loading-pages-box" class="loading-pages-box" style="display: none;">
       <div class="loading-pages-header">
         <span id="loading-pages-count">Pages to scan</span>
-        <span id="loading-overall-percent">0%</span>
       </div>
       <div id="loading-pages-list" class="loading-pages-list">
         <!-- Populated dynamically -->
@@ -1580,11 +1617,11 @@
     const btnScan = document.getElementById('btn-scan');
     const loadingOverlay = document.getElementById('loading');
     const loadingStatus = document.getElementById('loading-status');
+    const loadingTotalProgressCount = document.getElementById('loading-total-progress-count');
     const loadingProgressFill = document.getElementById('loading-progress-fill');
     const loadingPagesBox = document.getElementById('loading-pages-box');
     const loadingPagesList = document.getElementById('loading-pages-list');
     const loadingPagesCount = document.getElementById('loading-pages-count');
-    const loadingOverallPercent = document.getElementById('loading-overall-percent');
     const btnCancelScan = document.getElementById('btn-cancel-scan');
     const badgeAll = document.getElementById('badge-all');
     const badgeColors = document.getElementById('badge-colors');
@@ -1607,9 +1644,6 @@
       loadingPagesBox.style.display = 'flex';
       if (loadingPagesCount) {
         loadingPagesCount.textContent = `Pages (${pages.length})`;
-      }
-      if (loadingOverallPercent) {
-        loadingOverallPercent.textContent = '0%';
       }
 
       pages.forEach((p, idx) => {
@@ -1680,8 +1714,9 @@
       const currentIdx = typeof data.currentPageIndex === 'number' ? data.currentPageIndex : -1;
       const percent = typeof data.percent === 'number' ? data.percent : 0;
 
-      if (loadingOverallPercent) {
-        loadingOverallPercent.textContent = `${Math.min(100, Math.max(0, percent))}%`;
+      if (loadingTotalProgressCount) {
+        loadingTotalProgressCount.textContent = `${Math.min(100, Math.max(0, percent))}%`;
+        loadingTotalProgressCount.title = `Total Progress: ${Math.min(100, Math.max(0, percent))}%`;
       }
 
       const rows = loadingPagesList.querySelectorAll('.page-scan-row');
@@ -1961,10 +1996,11 @@
     function triggerScan() {
       loadingOverlay.classList.add('active');
       loadingStatus.textContent = `Preparing ${state.scope === 'all' ? 'all pages' : 'current page'} scan...`;
+      loadingStatus.title = loadingStatus.textContent;
+      if (loadingTotalProgressCount) loadingTotalProgressCount.textContent = '0%';
       if (loadingProgressFill) loadingProgressFill.style.width = '0%';
       if (loadingPagesBox) loadingPagesBox.style.display = 'none';
       if (loadingPagesList) loadingPagesList.innerHTML = '';
-      if (loadingOverallPercent) loadingOverallPercent.textContent = '0%';
       if (btnCancelScan) {
         btnCancelScan.disabled = false;
         btnCancelScan.innerHTML = `
@@ -1984,7 +2020,7 @@
 
     if (btnCancelScan) {
       btnCancelScan.addEventListener('click', () => {
-        loadingStatus.textContent = 'Stopping scan and preparing results...';
+        loadingStatus.textContent = 'Stopping scan...';
         btnCancelScan.disabled = true;
         btnCancelScan.innerHTML = `<span>Stopping...</span>`;
         parent.postMessage({
@@ -1997,6 +2033,8 @@
     btnBreakEverything.addEventListener('click', () => {
       loadingOverlay.classList.add('active');
       loadingStatus.textContent = 'Cleaning all missing library references...';
+      if (loadingTotalProgressCount) loadingTotalProgressCount.textContent = '50%';
+      if (loadingProgressFill) loadingProgressFill.style.width = '50%';
       if (loadingPagesBox) loadingPagesBox.style.display = 'none';
       parent.postMessage({
         pluginMessage: {
@@ -2029,23 +2067,55 @@
       } else if (msg.type === 'scan-init-pages') {
         initLoadingPages(msg.pages);
       } else if (msg.type === 'scan-progress') {
-        loadingStatus.textContent = msg.status || 'Scanning...';
+        const percent = typeof msg.percent === 'number' ? Math.min(100, Math.max(0, msg.percent)) : 0;
+        if (loadingStatus) {
+          loadingStatus.textContent = msg.status || 'Scanning...';
+          loadingStatus.title = msg.status || '';
+        }
+        if (loadingTotalProgressCount) {
+          loadingTotalProgressCount.textContent = `${percent}%`;
+          loadingTotalProgressCount.title = `Total Progress: ${percent}%`;
+        }
         if (loadingProgressFill && typeof msg.percent === 'number') {
-          loadingProgressFill.style.width = `${Math.min(100, Math.max(0, msg.percent))}%`;
+          loadingProgressFill.style.width = `${percent}%`;
         }
         updatePagesProgress(msg);
       } else if (msg.type === 'scan-page-completed') {
         completeLoadingPage(msg.pageIndex, msg.nodeCount);
       } else if (msg.type === 'scan-page-skipped') {
         skipLoadingPage(msg.pageIndex);
+      } else if (msg.type === 'scan-cancelled') {
+        loadingOverlay.classList.remove('active');
+        if (loadingPagesBox) loadingPagesBox.style.display = 'none';
+        if (loadingPagesList) loadingPagesList.innerHTML = '';
+        if (loadingProgressFill) loadingProgressFill.style.width = '0%';
+        if (loadingTotalProgressCount) loadingTotalProgressCount.textContent = '0%';
+        if (btnCancelScan) {
+          btnCancelScan.disabled = false;
+          btnCancelScan.innerHTML = `
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+            </svg>
+            <span>Stop Scan</span>
+          `;
+        }
+        // If scan is stopped, do not show already scanned items
+        state.hasScanned = false;
+        state.results = { colors: [], fonts: [], effects: [] };
+        state.stats = { totalColors: 0, totalFonts: 0, totalEffects: 0, totalScannedNodes: 0 };
+        updateStats();
+        render();
       } else if (msg.type === 'scan-results') {
         try {
           state.hasScanned = true;
 
           // Immediately reflect 100% complete state in loading bar
           if (loadingProgressFill) loadingProgressFill.style.width = '100%';
-          if (loadingOverallPercent) loadingOverallPercent.textContent = '100%';
-          if (loadingStatus) loadingStatus.textContent = 'Scan complete! Rendering results...';
+          if (loadingTotalProgressCount) loadingTotalProgressCount.textContent = '100%';
+          if (loadingStatus) {
+            loadingStatus.textContent = 'Scan complete! Rendering results...';
+            loadingStatus.title = 'Scan complete! Rendering results...';
+          }
 
           if (btnCancelScan) {
             btnCancelScan.disabled = false;
@@ -2078,6 +2148,7 @@
             loadingOverlay.classList.remove('active');
             if (loadingPagesBox) loadingPagesBox.style.display = 'none';
             if (loadingProgressFill) loadingProgressFill.style.width = '0%';
+            if (loadingTotalProgressCount) loadingTotalProgressCount.textContent = '0%';
             render();
           }, 60);
         } catch (scanErr) {
@@ -2459,6 +2530,9 @@
       if (state.hasScanned) {
         loadingOverlay.classList.add('active');
         loadingStatus.textContent = 'Updating scan with new settings...';
+        loadingStatus.title = loadingStatus.textContent;
+        if (loadingTotalProgressCount) loadingTotalProgressCount.textContent = '0%';
+        if (loadingProgressFill) loadingProgressFill.style.width = '0%';
         parent.postMessage({
           pluginMessage: {
             type: 'save-settings',
@@ -2626,8 +2700,8 @@
           <div class="drawer-pagination-row" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; font-size: 11px; border-top: 1px solid var(--border-subtle); color: var(--text-dim); background: var(--bg-hover);">
             <span>Showing ${count.toLocaleString()} of ${total.toLocaleString()} layers</span>
             <div style="display: flex; gap: 6px;">
-              <button type="button" class="btn-load-more-layers" data-rendered-count="${count}" style="padding: 2px 8px; font-size: 10px; font-weight: 500; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer;">+50 More</button>
-              <button type="button" class="btn-load-all-layers" style="padding: 2px 8px; font-size: 10px; font-weight: 500; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer;">Show All (${total.toLocaleString()})</button>
+              <button type="button" class="btn-load-more-layers" data-rendered-count="${count}" style="padding: 2px 8px; font-size: 11px; font-weight: 500; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer;">+50 More</button>
+              <button type="button" class="btn-load-all-layers" style="padding: 2px 8px; font-size: 11px; font-weight: 500; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer;">Show All (${total.toLocaleString()})</button>
             </div>
           </div>
         `;
