@@ -1936,7 +1936,7 @@
     }
 
     searchInput.addEventListener('input', (e) => {
-      state.searchQuery = e.target.value.toLowerCase().trim();
+      state.searchQuery = e.target.value.trim();
       updateSearchClearBtn();
       render();
     });
@@ -2039,36 +2039,53 @@
       } else if (msg.type === 'scan-page-skipped') {
         skipLoadingPage(msg.pageIndex);
       } else if (msg.type === 'scan-results') {
-        state.hasScanned = true;
-        loadingOverlay.classList.remove('active');
-        if (loadingPagesBox) loadingPagesBox.style.display = 'none';
-        if (loadingProgressFill) loadingProgressFill.style.width = '0%';
-        if (btnCancelScan) {
-          btnCancelScan.disabled = false;
-          btnCancelScan.innerHTML = `
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <rect x="4" y="4" width="16" height="16" rx="2"/>
-            </svg>
-            <span>Stop Scan</span>
-          `;
-        }
-        if (msg.settings) {
-          state.settings = { ...state.settings, ...msg.settings };
-        }
-        if (msg.scope) {
-          state.scope = msg.scope;
-        }
         try {
-          localStorage.setItem('mlf_settings', JSON.stringify({
-            settings: state.settings,
-            scope: state.scope
-          }));
-        } catch (e) {}
-        syncScopeUI();
-        state.results = msg.results || { colors: [], fonts: [], effects: [] };
-        state.stats = msg.stats || { totalColors: 0, totalFonts: 0, totalEffects: 0 };
-        updateStats();
-        render();
+          state.hasScanned = true;
+
+          // Immediately reflect 100% complete state in loading bar
+          if (loadingProgressFill) loadingProgressFill.style.width = '100%';
+          if (loadingOverallPercent) loadingOverallPercent.textContent = '100%';
+          if (loadingStatus) loadingStatus.textContent = 'Scan complete! Rendering results...';
+
+          if (btnCancelScan) {
+            btnCancelScan.disabled = false;
+            btnCancelScan.innerHTML = `
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <rect x="4" y="4" width="16" height="16" rx="2"/>
+              </svg>
+              <span>Stop Scan</span>
+            `;
+          }
+          if (msg.settings) {
+            state.settings = { ...state.settings, ...msg.settings };
+          }
+          if (msg.scope) {
+            state.scope = msg.scope;
+          }
+          try {
+            localStorage.setItem('mlf_settings', JSON.stringify({
+              settings: state.settings,
+              scope: state.scope
+            }));
+          } catch (e) {}
+          syncScopeUI();
+          state.results = msg.results || { colors: [], fonts: [], effects: [] };
+          state.stats = msg.stats || { totalColors: 0, totalFonts: 0, totalEffects: 0 };
+          updateStats();
+
+          // Yield execution to allow the browser to paint the 100% state and dismiss smoothly
+          setTimeout(() => {
+            loadingOverlay.classList.remove('active');
+            if (loadingPagesBox) loadingPagesBox.style.display = 'none';
+            if (loadingProgressFill) loadingProgressFill.style.width = '0%';
+            render();
+          }, 60);
+        } catch (scanErr) {
+          console.error('Error handling scan-results:', scanErr);
+          loadingOverlay.classList.remove('active');
+          if (loadingPagesBox) loadingPagesBox.style.display = 'none';
+          render();
+        }
       } else if (msg.type === 'category-broken') {
         loadingOverlay.classList.remove('active');
         if (msg.category === 'all') {
@@ -2146,6 +2163,12 @@
           if (countTag) {
             countTag.textContent = `${item.nodes.length} layer${item.nodes.length === 1 ? '' : 's'}`;
           }
+          const paginationSpan = cardElem.querySelector('.drawer-pagination-row span');
+          const drawer = cardElem.querySelector('.layers-drawer');
+          if (paginationSpan && drawer) {
+            const currentRendered = drawer.querySelectorAll('.layer-row').length;
+            paginationSpan.textContent = `Showing ${currentRendered.toLocaleString()} of ${item.nodes.length.toLocaleString()} layers`;
+          }
         }
         recalculateStats();
         updateStats();
@@ -2220,13 +2243,14 @@
         items = [...state.results.colors, ...state.results.fonts, ...state.results.effects];
       }
 
-      // Filter by search query
+      // Filter by search query (case-sensitive)
       if (state.searchQuery) {
         items = items.filter(item => {
-          const matchName = item.name && item.name.toLowerCase().includes(state.searchQuery);
-          const matchType = item.subType && item.subType.toLowerCase().includes(state.searchQuery);
-          const matchLayers = item.nodes && item.nodes.some(n => n.name && n.name.toLowerCase().includes(state.searchQuery));
-          return matchName || matchType || matchLayers;
+          const matchName = item.name && item.name.includes(state.searchQuery);
+          const matchFamily = item.fontFamily && item.fontFamily.includes(state.searchQuery);
+          const matchType = item.subType && item.subType.includes(state.searchQuery);
+          const matchLayers = item.nodes && item.nodes.some(n => n.name && n.name.includes(state.searchQuery));
+          return matchName || matchFamily || matchType || matchLayers;
         });
       }
 
@@ -2554,6 +2578,65 @@
       }
     }
 
+    function renderDrawerRows(drawer, item, card, maxToRender = 50) {
+      if (!drawer || !item || !item.nodes) return;
+      const total = item.nodes.length;
+      if (total === 0) {
+        drawer.innerHTML = '<div style="padding: 8px 12px; font-size: 11px; color: var(--text-muted);">No layers remaining</div>';
+        drawer.dataset.renderedCount = '0';
+        return;
+      }
+
+      const count = Math.min(total, maxToRender);
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        const node = item.nodes[i];
+        const safeName = (node.name || 'Unnamed Layer').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const safePage = (node.pageName || 'Page').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html += `
+          <div class="layer-row" data-node-id="${node.id}">
+            <div class="layer-meta">
+              <span class="layer-type-tag">${node.type || 'LAYER'}</span>
+              <span class="layer-name" title="${safeName}">${safeName}</span>
+              <span class="layer-page-pill">${safePage}</span>
+            </div>
+            <div class="layer-actions">
+              <button class="layer-btn focus-layer" data-node-id="${node.id}" data-page-id="${node.pageId || ''}" title="Focus layer">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+              <button class="layer-btn break-single" data-node-id="${node.id}" title="Detach this layer only">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="6" cy="6" r="3"/>
+                  <circle cx="6" cy="18" r="3"/>
+                  <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                  <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                  <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      if (count < total) {
+        html += `
+          <div class="drawer-pagination-row" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; font-size: 11px; border-top: 1px solid var(--border-subtle); color: var(--text-dim); background: var(--bg-hover);">
+            <span>Showing ${count.toLocaleString()} of ${total.toLocaleString()} layers</span>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn-load-more-layers" data-rendered-count="${count}" style="padding: 2px 8px; font-size: 10px; font-weight: 500; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer;">+50 More</button>
+              <button type="button" class="btn-load-all-layers" style="padding: 2px 8px; font-size: 10px; font-weight: 500; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer;">Show All (${total.toLocaleString()})</button>
+            </div>
+          </div>
+        `;
+      }
+
+      drawer.innerHTML = html;
+      drawer.dataset.renderedCount = String(count);
+    }
+
     function createItemCard(item) {
       const card = document.createElement('div');
       card.className = 'item-card';
@@ -2659,13 +2742,19 @@
         <div class="layers-drawer"></div>
       `;
 
+      const drawer = card.querySelector('.layers-drawer');
+
       // Header click expands/collapses
       const headerEl = card.querySelector('.item-header');
       headerEl.addEventListener('click', (e) => {
         if (e.target.closest('.btn-action')) return;
-        card.classList.toggle('expanded');
-        if (card.classList.contains('expanded')) {
+        const willExpand = !card.classList.contains('expanded');
+        card.classList.toggle('expanded', willExpand);
+        if (willExpand) {
           state.expandedCards.add(item.key);
+          if (!drawer.dataset.renderedCount) {
+            renderDrawerRows(drawer, item, card, 50);
+          }
         } else {
           state.expandedCards.delete(item.key);
         }
@@ -2722,70 +2811,66 @@
         removeItemFromState(item.key);
       });
 
-      // Render individual layer rows in drawer
-      const drawer = card.querySelector('.layers-drawer');
-      if (item.nodes && item.nodes.length > 0) {
-        item.nodes.forEach(node => {
-          const row = document.createElement('div');
-          row.className = 'layer-row';
-          row.innerHTML = `
-            <div class="layer-meta">
-              <span class="layer-type-tag">${node.type}</span>
-              <span class="layer-name" title="${node.name}">${node.name}</span>
-              <span class="layer-page-pill">${node.pageName || 'Page'}</span>
-            </div>
-            <div class="layer-actions">
-              <button class="layer-btn focus-layer" title="Focus layer">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-              </button>
-              <button class="layer-btn break-single" title="Detach this layer only">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="6" cy="6" r="3"/>
-                  <circle cx="6" cy="18" r="3"/>
-                  <line x1="20" y1="4" x2="8.12" y2="15.88"/>
-                  <line x1="14.47" y1="14.48" x2="20" y2="20"/>
-                  <line x1="8.12" y1="8.12" x2="12" y2="12"/>
-                </svg>
-              </button>
-            </div>
-          `;
-
-          // Row focus
-          row.querySelector('.focus-layer').addEventListener('click', (e) => {
-            e.stopPropagation();
+      // Drawer event delegation (1 listener handles focus, single detach, and pagination for all rows)
+      drawer.addEventListener('click', (e) => {
+        const rowFocusBtn = e.target.closest('.focus-layer');
+        if (rowFocusBtn) {
+          e.stopPropagation();
+          const nodeId = rowFocusBtn.getAttribute('data-node-id');
+          const pageId = rowFocusBtn.getAttribute('data-page-id');
+          if (nodeId) {
             parent.postMessage({
               pluginMessage: {
                 type: 'focus-node',
-                nodeId: node.id,
-                pageId: node.pageId
+                nodeId,
+                pageId
               }
             }, '*');
-          });
+          }
+          return;
+        }
 
-          // Row single break
-          row.querySelector('.break-single').addEventListener('click', (e) => {
-            e.stopPropagation();
+        const rowBreakBtn = e.target.closest('.break-single');
+        if (rowBreakBtn) {
+          e.stopPropagation();
+          const nodeId = rowBreakBtn.getAttribute('data-node-id');
+          const row = rowBreakBtn.closest('.layer-row');
+          if (nodeId) {
             parent.postMessage({
               pluginMessage: {
                 type: 'break-item',
                 itemKey: item.key,
                 subType: item.subType,
                 rawId: item.rawId,
-                nodeIds: [node.id],
+                nodeIds: [nodeId],
                 replacementFont: state.selectedFont,
                 scope: state.scope
               }
             }, '*');
+            removeLayerFromItem(item.key, nodeId, card, row);
+          }
+          return;
+        }
 
-            // Optimistic removal: instantly removes this layer row without blocking re-scan
-            removeLayerFromItem(item.key, node.id, card, row);
-          });
+        const loadMoreBtn = e.target.closest('.btn-load-more-layers');
+        if (loadMoreBtn) {
+          e.stopPropagation();
+          const currentCount = parseInt(loadMoreBtn.getAttribute('data-rendered-count') || '50', 10);
+          renderDrawerRows(drawer, item, card, currentCount + 50);
+          return;
+        }
 
-          drawer.appendChild(row);
-        });
+        const loadAllBtn = e.target.closest('.btn-load-all-layers');
+        if (loadAllBtn) {
+          e.stopPropagation();
+          renderDrawerRows(drawer, item, card, item.nodes ? item.nodes.length : 0);
+          return;
+        }
+      });
+
+      // If initially expanded, render initial 50 rows
+      if (isExpanded) {
+        renderDrawerRows(drawer, item, card, 50);
       }
 
       return card;
